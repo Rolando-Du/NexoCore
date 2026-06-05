@@ -4,6 +4,7 @@ import helmet from "helmet";
 import morgan from "morgan";
 import path from "path";
 
+import { env } from "./config/env.js";
 import { setupSwagger } from "./docs/swagger.js";
 import authRoutes from "./modules/auth/auth.routes.js";
 import clientRoutes from "./modules/clients/client.routes.js";
@@ -19,9 +20,7 @@ import {
 
 const app = express();
 
-const corsOrigins = (
-  process.env.CORS_ORIGIN || "http://localhost:5173"
-)
+const corsOrigins = env.corsOrigin
   .split(",")
   .map((origin) => origin.trim())
   .filter(Boolean);
@@ -42,7 +41,7 @@ app.use(
         return;
       }
 
-      callback(new Error("Origen no permitido por CORS"));
+      callback(new Error("Origin not allowed by CORS"));
     },
     credentials: true,
   })
@@ -51,12 +50,12 @@ app.use(
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true, limit: "2mb" }));
 
-app.use(morgan(process.env.NODE_ENV === "production" ? "combined" : "dev"));
+app.use(morgan(env.nodeEnv === "production" ? "combined" : "dev"));
 
 app.use(
   "/uploads",
   express.static(path.resolve("uploads"), {
-    maxAge: process.env.NODE_ENV === "production" ? "7d" : 0,
+    maxAge: env.nodeEnv === "production" ? "7d" : 0,
   })
 );
 
@@ -67,7 +66,7 @@ app.get("/health", (req, res) => {
     success: true,
     message: "NexoCore API funcionando correctamente",
     timestamp: new Date().toISOString(),
-    environment: process.env.NODE_ENV || "development",
+    environment: env.nodeEnv,
   });
 });
 
