@@ -51,6 +51,19 @@ const AdminLayout = () => {
           </NavLink>
 
           <NavLink
+            to="/evidences"
+            className={({ isActive }) =>
+              `block rounded-lg px-3 py-2 ${
+                isActive
+                  ? "bg-cyan-500/10 text-cyan-300"
+                  : "text-slate-200 hover:bg-slate-800 hover:text-cyan-400"
+              }`
+            }
+          >
+            Evidencias
+          </NavLink>
+
+          <NavLink
             to="/notifications"
             className={({ isActive }) =>
               `block rounded-lg px-3 py-2 ${

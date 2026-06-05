@@ -5,6 +5,7 @@ import Dashboard from "../pages/Dashboard";
 import Clients from "../pages/Clients";
 import Operations from "../pages/Operations";
 import Notifications from "../pages/Notifications";
+import Evidences from "../pages/Evidences";
 import AdminLayout from "../layouts/AdminLayout";
 import ProtectedRoute from "../components/common/ProtectedRoute";
 
@@ -26,6 +27,7 @@ const AppRouter = () => {
           <Route path="clients" element={<Clients />} />
           <Route path="operations" element={<Operations />} />
           <Route path="notifications" element={<Notifications />} />
+          <Route path="evidences" element={<Evidences />} />
         </Route>
       </Routes>
     </BrowserRouter>
