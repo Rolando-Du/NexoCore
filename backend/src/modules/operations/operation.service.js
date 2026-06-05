@@ -1,4 +1,5 @@
 import { prisma } from "../../config/prisma.js";
+import { createNotification } from "../notifications/notification.service.js";
 
 export const createOperation = async ({
   tenantId,
@@ -32,7 +33,9 @@ export const createOperation = async ({
     });
 
     if (!assignedUser) {
-      const error = new Error("El usuario asignado no pertenece a esta empresa");
+      const error = new Error(
+        "El usuario asignado no pertenece a esta empresa"
+      );
       error.statusCode = 404;
       throw error;
     }
@@ -50,6 +53,7 @@ export const createOperation = async ({
         scheduledAt: data.scheduledAt,
         createdById: userId,
         assignedToId: data.assignedToId,
+
         assignments: data.assignedToId
           ? {
               create: {
@@ -58,6 +62,7 @@ export const createOperation = async ({
               },
             }
           : undefined,
+
         statusHistory: {
           create: {
             tenantId,
@@ -71,7 +76,11 @@ export const createOperation = async ({
       include: {
         client: true,
         assignments: true,
-        statusHistory: true,
+        statusHistory: {
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
       },
     });
 
@@ -91,6 +100,22 @@ export const createOperation = async ({
         userAgent,
       },
     });
+
+    if (data.assignedToId) {
+      await createNotification({
+        tx,
+        tenantId,
+        userId: data.assignedToId,
+        type: "OPERATION_ASSIGNED",
+        title: "Nueva operación asignada",
+        message: `Se te asignó la operación: ${operation.title}`,
+        payload: {
+          operationId: operation.id,
+          status: operation.status,
+          priority: operation.priority,
+        },
+      });
+    }
 
     return operation;
   });
@@ -168,6 +193,14 @@ export const updateOperationStatus = async ({
     throw error;
   }
 
+  if (existingOperation.status === data.status) {
+    const error = new Error(
+      `La operación ya se encuentra en estado ${data.status}`
+    );
+    error.statusCode = 409;
+    throw error;
+  }
+
   const statusDates = {};
 
   if (data.status === "IN_PROGRESS" && !existingOperation.startedAt) {
@@ -179,18 +212,13 @@ export const updateOperationStatus = async ({
   }
 
   const result = await prisma.$transaction(async (tx) => {
-    const updatedOperation = await tx.operation.update({
+    await tx.operation.update({
       where: {
         id: operationId,
       },
       data: {
         status: data.status,
         ...statusDates,
-      },
-      include: {
-        client: true,
-        assignments: true,
-        statusHistory: true,
       },
     });
 
@@ -225,6 +253,40 @@ export const updateOperationStatus = async ({
         },
         ip,
         userAgent,
+      },
+    });
+
+    const notificationUserId =
+      existingOperation.assignedToId || existingOperation.createdById;
+
+    await createNotification({
+      tx,
+      tenantId,
+      userId: notificationUserId,
+      type: "OPERATION_STATUS_CHANGED",
+      title: "Estado de operación actualizado",
+      message: `La operación "${existingOperation.title}" cambió de ${existingOperation.status} a ${data.status}`,
+      payload: {
+        operationId,
+        fromStatus: existingOperation.status,
+        toStatus: data.status,
+        note: data.note,
+      },
+    });
+
+    const updatedOperation = await tx.operation.findFirst({
+      where: {
+        id: operationId,
+        tenantId,
+      },
+      include: {
+        client: true,
+        assignments: true,
+        statusHistory: {
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
       },
     });
 
@@ -269,17 +331,12 @@ export const assignOperation = async ({
   }
 
   const result = await prisma.$transaction(async (tx) => {
-    const updatedOperation = await tx.operation.update({
+    await tx.operation.update({
       where: {
         id: operationId,
       },
       data: {
         assignedToId: assignedUserId,
-      },
-      include: {
-        client: true,
-        assignments: true,
-        statusHistory: true,
       },
     });
 
@@ -317,6 +374,35 @@ export const assignOperation = async ({
         },
         ip,
         userAgent,
+      },
+    });
+
+    await createNotification({
+      tx,
+      tenantId,
+      userId: assignedUserId,
+      type: "OPERATION_ASSIGNED",
+      title: "Operación asignada",
+      message: `Se te asignó la operación: ${existingOperation.title}`,
+      payload: {
+        operationId,
+        assignedBy: userId,
+      },
+    });
+
+    const updatedOperation = await tx.operation.findFirst({
+      where: {
+        id: operationId,
+        tenantId,
+      },
+      include: {
+        client: true,
+        assignments: true,
+        statusHistory: {
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
       },
     });
 

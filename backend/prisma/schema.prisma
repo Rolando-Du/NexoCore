@@ -47,6 +47,19 @@ enum Priority {
   CRITICAL
 }
 
+enum NotificationStatus {
+  UNREAD
+  READ
+  ARCHIVED
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  PUSH
+  WHATSAPP
+}
+
 model Tenant {
   id        String   @id @default(cuid())
   name      String
@@ -54,11 +67,12 @@ model Tenant {
   taxId     String?
   isActive  Boolean  @default(true)
 
-  users      TenantUser[]
-  roles      Role[]
-  clients    Client[]
-  operations Operation[]
-  auditLogs  AuditLog[]
+  users         TenantUser[]
+  roles         Role[]
+  clients       Client[]
+  operations    Operation[]
+  notifications Notification[]
+  auditLogs     AuditLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -71,8 +85,9 @@ model User {
   password String
   status   UserStatus @default(ACTIVE)
 
-  memberships TenantUser[]
-  auditLogs   AuditLog[]
+  memberships   TenantUser[]
+  auditLogs     AuditLog[]
+  notifications Notification[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -298,4 +313,31 @@ model OperationStatusHistory {
   @@index([tenantId])
   @@index([operationId])
   @@index([changedById])
+}
+
+model Notification {
+  id       String @id @default(cuid())
+  tenantId String
+  userId   String
+
+  channel NotificationChannel @default(IN_APP)
+  status  NotificationStatus @default(UNREAD)
+
+  type    String
+  title   String
+  message String
+  payload Json?
+
+  tenant Tenant @relation(fields: [tenantId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  readAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([userId])
+  @@index([status])
+  @@index([type])
 }
