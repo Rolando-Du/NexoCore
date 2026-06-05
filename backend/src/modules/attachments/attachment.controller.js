@@ -1,5 +1,28 @@
+import fs from "fs/promises";
+import { ZodError } from "zod";
+
 import { uploadAttachmentSchema } from "./attachment.schema.js";
 import * as attachmentService from "./attachment.service.js";
+
+const removeUploadedFile = async (file) => {
+  if (!file?.path) return;
+
+  try {
+    await fs.unlink(file.path);
+  } catch {
+    // Si el archivo no existe o ya fue eliminado, no rompemos la respuesta.
+  }
+};
+
+const handleValidationError = async ({ error, req, res }) => {
+  await removeUploadedFile(req.file);
+
+  return res.status(400).json({
+    success: false,
+    message: "Datos inválidos",
+    errors: error.issues,
+  });
+};
 
 export const uploadOperationAttachment = async (req, res, next) => {
   try {
@@ -15,21 +38,17 @@ export const uploadOperationAttachment = async (req, res, next) => {
       userAgent: req.headers["user-agent"],
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Evidencia subida correctamente",
       data: attachment,
     });
   } catch (error) {
-    if (error.name === "ZodError") {
-      return res.status(400).json({
-        success: false,
-        message: "Datos inválidos",
-        errors: error.issues,
-      });
+    if (error instanceof ZodError) {
+      return handleValidationError({ error, req, res });
     }
 
-    next(error);
+    return next(error);
   }
 };
 
@@ -40,13 +59,13 @@ export const getOperationAttachments = async (req, res, next) => {
       operationId: req.params.operationId,
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: "Evidencias obtenidas correctamente",
       data: attachments,
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };
 
@@ -57,12 +76,12 @@ export const getAttachmentById = async (req, res, next) => {
       attachmentId: req.params.id,
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: "Archivo obtenido correctamente",
       data: attachment,
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };
