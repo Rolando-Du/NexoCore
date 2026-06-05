@@ -30,6 +30,7 @@ model Tenant {
 
   users     TenantUser[]
   roles     Role[]
+  clients   Client[]
   auditLogs AuditLog[]
 
   createdAt DateTime @default(now())
@@ -134,4 +135,68 @@ model AuditLog {
   @@index([userId])
   @@index([module])
   @@index([entityId])
+}
+
+model Client {
+  id       String @id @default(cuid())
+  tenantId String
+
+  name      String
+  legalName String?
+  taxId     String?
+  email     String?
+  phone     String?
+  isActive  Boolean @default(true)
+
+  tenant    Tenant @relation(fields: [tenantId], references: [id])
+  locations ClientLocation[]
+  contacts  ClientContact[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([name])
+  @@index([taxId])
+}
+
+model ClientLocation {
+  id       String @id @default(cuid())
+  tenantId String
+  clientId String
+
+  name    String
+  address String?
+  city    String?
+  state   String?
+  country String?
+  lat     Float?
+  lng     Float?
+
+  client Client @relation(fields: [clientId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([clientId])
+}
+
+model ClientContact {
+  id       String @id @default(cuid())
+  tenantId String
+  clientId String
+
+  name  String
+  email String?
+  phone String?
+  role  String?
+
+  client Client @relation(fields: [clientId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([clientId])
 }
