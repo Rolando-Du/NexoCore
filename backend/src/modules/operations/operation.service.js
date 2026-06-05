@@ -1,6 +1,87 @@
 import { prisma } from "../../config/prisma.js";
 import { createNotification } from "../notifications/notification.service.js";
 
+const operationInclude = {
+  client: true,
+  assignments: true,
+  statusHistory: {
+    orderBy: {
+      createdAt: "desc",
+    },
+  },
+};
+
+const normalizeOptionalText = (value) => {
+  if (!value) return null;
+
+  const cleanValue = String(value).trim();
+
+  return cleanValue || null;
+};
+
+const normalizeRequiredText = (value) => {
+  return String(value).trim();
+};
+
+const validateClient = async ({ tenantId, clientId }) => {
+  if (!clientId) return null;
+
+  const client = await prisma.client.findFirst({
+    where: {
+      id: clientId,
+      tenantId,
+      isActive: true,
+    },
+    select: {
+      id: true,
+      name: true,
+    },
+  });
+
+  if (!client) {
+    const error = new Error("Cliente no encontrado o inactivo");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  return client;
+};
+
+const validateTenantUser = async ({ tenantId, userId }) => {
+  if (!userId) return null;
+
+  const tenantUser = await prisma.tenantUser.findFirst({
+    where: {
+      tenantId,
+      userId,
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+          status: true,
+        },
+      },
+    },
+  });
+
+  if (!tenantUser) {
+    const error = new Error("El usuario asignado no pertenece a esta empresa");
+    error.statusCode = 404;
+    throw error;
+  }
+
+  if (tenantUser.user.status !== "ACTIVE") {
+    const error = new Error("El usuario asignado no se encuentra activo");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  return tenantUser;
+};
+
 export const createOperation = async ({
   tenantId,
   userId,
@@ -8,51 +89,28 @@ export const createOperation = async ({
   ip,
   userAgent,
 }) => {
-  if (data.clientId) {
-    const client = await prisma.client.findFirst({
-      where: {
-        id: data.clientId,
-        tenantId,
-        isActive: true,
-      },
-    });
+  await validateClient({
+    tenantId,
+    clientId: data.clientId,
+  });
 
-    if (!client) {
-      const error = new Error("Cliente no encontrado o inactivo");
-      error.statusCode = 404;
-      throw error;
-    }
-  }
-
-  if (data.assignedToId) {
-    const assignedUser = await prisma.tenantUser.findFirst({
-      where: {
-        tenantId,
-        userId: data.assignedToId,
-      },
-    });
-
-    if (!assignedUser) {
-      const error = new Error(
-        "El usuario asignado no pertenece a esta empresa"
-      );
-      error.statusCode = 404;
-      throw error;
-    }
-  }
+  await validateTenantUser({
+    tenantId,
+    userId: data.assignedToId,
+  });
 
   const result = await prisma.$transaction(async (tx) => {
     const operation = await tx.operation.create({
       data: {
         tenantId,
-        clientId: data.clientId,
+        clientId: data.clientId || null,
         type: data.type,
-        title: data.title,
-        description: data.description,
+        title: normalizeRequiredText(data.title),
+        description: normalizeOptionalText(data.description),
         priority: data.priority || "MEDIUM",
-        scheduledAt: data.scheduledAt,
+        scheduledAt: data.scheduledAt || null,
         createdById: userId,
-        assignedToId: data.assignedToId,
+        assignedToId: data.assignedToId || null,
 
         assignments: data.assignedToId
           ? {
@@ -73,15 +131,7 @@ export const createOperation = async ({
           },
         },
       },
-      include: {
-        client: true,
-        assignments: true,
-        statusHistory: {
-          orderBy: {
-            createdAt: "desc",
-          },
-        },
-      },
+      include: operationInclude,
     });
 
     await tx.auditLog.create({
@@ -92,7 +142,16 @@ export const createOperation = async ({
         module: "operations",
         entity: "Operation",
         entityId: operation.id,
-        newValue: operation,
+        newValue: {
+          id: operation.id,
+          clientId: operation.clientId,
+          type: operation.type,
+          title: operation.title,
+          status: operation.status,
+          priority: operation.priority,
+          scheduledAt: operation.scheduledAt,
+          assignedToId: operation.assignedToId,
+        },
         metadata: {
           event: "CREATE_OPERATION",
         },
@@ -123,23 +182,17 @@ export const createOperation = async ({
   return result;
 };
 
-export const getOperations = async ({ tenantId, filters }) => {
+export const getOperations = async ({ tenantId, filters = {} }) => {
   return prisma.operation.findMany({
     where: {
       tenantId,
       status: filters.status || undefined,
       type: filters.type || undefined,
       clientId: filters.clientId || undefined,
+      priority: filters.priority || undefined,
+      assignedToId: filters.assignedToId || undefined,
     },
-    include: {
-      client: true,
-      assignments: true,
-      statusHistory: {
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
-    },
+    include: operationInclude,
     orderBy: {
       createdAt: "desc",
     },
@@ -152,15 +205,7 @@ export const getOperationById = async ({ tenantId, operationId }) => {
       id: operationId,
       tenantId,
     },
-    include: {
-      client: true,
-      assignments: true,
-      statusHistory: {
-        orderBy: {
-          createdAt: "desc",
-        },
-      },
-    },
+    include: operationInclude,
   });
 
   if (!operation) {
@@ -211,6 +256,12 @@ export const updateOperationStatus = async ({
     statusDates.completedAt = new Date();
   }
 
+  if (data.status !== "COMPLETED" && existingOperation.completedAt) {
+    statusDates.completedAt = null;
+  }
+
+  const cleanNote = normalizeOptionalText(data.note);
+
   const result = await prisma.$transaction(async (tx) => {
     await tx.operation.update({
       where: {
@@ -229,7 +280,7 @@ export const updateOperationStatus = async ({
         fromStatus: existingOperation.status,
         toStatus: data.status,
         changedById: userId,
-        note: data.note,
+        note: cleanNote,
       },
     });
 
@@ -243,13 +294,16 @@ export const updateOperationStatus = async ({
         entityId: operationId,
         oldValue: {
           status: existingOperation.status,
+          startedAt: existingOperation.startedAt,
+          completedAt: existingOperation.completedAt,
         },
         newValue: {
           status: data.status,
+          ...statusDates,
         },
         metadata: {
           event: "UPDATE_OPERATION_STATUS",
-          note: data.note,
+          note: cleanNote,
         },
         ip,
         userAgent,
@@ -270,7 +324,7 @@ export const updateOperationStatus = async ({
         operationId,
         fromStatus: existingOperation.status,
         toStatus: data.status,
-        note: data.note,
+        note: cleanNote,
       },
     });
 
@@ -279,15 +333,7 @@ export const updateOperationStatus = async ({
         id: operationId,
         tenantId,
       },
-      include: {
-        client: true,
-        assignments: true,
-        statusHistory: {
-          orderBy: {
-            createdAt: "desc",
-          },
-        },
-      },
+      include: operationInclude,
     });
 
     return updatedOperation;
@@ -317,18 +363,16 @@ export const assignOperation = async ({
     throw error;
   }
 
-  const assignedUser = await prisma.tenantUser.findFirst({
-    where: {
-      tenantId,
-      userId: assignedUserId,
-    },
-  });
-
-  if (!assignedUser) {
-    const error = new Error("El usuario asignado no pertenece a esta empresa");
-    error.statusCode = 404;
+  if (existingOperation.assignedToId === assignedUserId) {
+    const error = new Error("La operación ya está asignada a este usuario");
+    error.statusCode = 409;
     throw error;
   }
+
+  await validateTenantUser({
+    tenantId,
+    userId: assignedUserId,
+  });
 
   const result = await prisma.$transaction(async (tx) => {
     await tx.operation.update({
@@ -395,15 +439,7 @@ export const assignOperation = async ({
         id: operationId,
         tenantId,
       },
-      include: {
-        client: true,
-        assignments: true,
-        statusHistory: {
-          orderBy: {
-            createdAt: "desc",
-          },
-        },
-      },
+      include: operationInclude,
     });
 
     return updatedOperation;
