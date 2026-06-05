@@ -20,6 +20,45 @@ const statusClassName = {
   CANCELLED: "bg-red-500/10 text-red-300",
 };
 
+const statCards = [
+  {
+    key: "totalClients",
+    label: "Clientes",
+    className: "border-slate-800 bg-slate-900/70 text-slate-100",
+    labelClassName: "text-slate-400",
+  },
+  {
+    key: "totalOperations",
+    label: "Operaciones",
+    className: "border-slate-800 bg-slate-900/70 text-slate-100",
+    labelClassName: "text-slate-400",
+  },
+  {
+    key: "pending",
+    label: "Pendientes",
+    className: "border-yellow-500/20 bg-yellow-500/10 text-yellow-300",
+    labelClassName: "text-yellow-200",
+  },
+  {
+    key: "inProgress",
+    label: "En progreso",
+    className: "border-cyan-500/20 bg-cyan-500/10 text-cyan-300",
+    labelClassName: "text-cyan-200",
+  },
+  {
+    key: "completed",
+    label: "Completadas",
+    className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
+    labelClassName: "text-emerald-200",
+  },
+  {
+    key: "unreadNotifications",
+    label: "No leídas",
+    className: "border-purple-500/20 bg-purple-500/10 text-purple-300",
+    labelClassName: "text-purple-200",
+  },
+];
+
 const Dashboard = () => {
   const { userSession } = useAuth();
 
@@ -106,11 +145,11 @@ const Dashboard = () => {
   }, [loadDashboard]);
 
   return (
-    <div>
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-3xl font-bold">Dashboard</h2>
-          <p className="mt-2 text-slate-400">
+    <div className="max-w-full overflow-hidden">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-2xl font-bold md:text-3xl">Dashboard</h2>
+          <p className="mt-2 wrap-break-word text-sm text-slate-400 md:text-base">
             Bienvenido a NexoCore, {userSession?.user?.name}.
           </p>
         </div>
@@ -118,7 +157,7 @@ const Dashboard = () => {
         <button
           type="button"
           onClick={loadDashboard}
-          className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-cyan-400"
+          className="w-full rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-cyan-400 md:w-auto"
         >
           Actualizar
         </button>
@@ -134,55 +173,28 @@ const Dashboard = () => {
         <p className="mt-8 text-slate-400">Cargando dashboard...</p>
       ) : (
         <>
-          <div className="mt-8 grid gap-6 sm:grid-cols-2 xl:grid-cols-6">
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-              <p className="text-sm text-slate-400">Clientes</p>
-              <p className="mt-2 text-3xl font-bold text-slate-100">
-                {stats.totalClients}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-              <p className="text-sm text-slate-400">Operaciones</p>
-              <p className="mt-2 text-3xl font-bold text-slate-100">
-                {stats.totalOperations}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-yellow-500/20 bg-yellow-500/10 p-6">
-              <p className="text-sm text-yellow-200">Pendientes</p>
-              <p className="mt-2 text-3xl font-bold text-yellow-300">
-                {stats.pending}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-cyan-500/20 bg-cyan-500/10 p-6">
-              <p className="text-sm text-cyan-200">En progreso</p>
-              <p className="mt-2 text-3xl font-bold text-cyan-300">
-                {stats.inProgress}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-6">
-              <p className="text-sm text-emerald-200">Completadas</p>
-              <p className="mt-2 text-3xl font-bold text-emerald-300">
-                {stats.completed}
-              </p>
-            </div>
-
-            <div className="rounded-2xl border border-purple-500/20 bg-purple-500/10 p-6">
-              <p className="text-sm text-purple-200">No leídas</p>
-              <p className="mt-2 text-3xl font-bold text-purple-300">
-                {stats.unreadNotifications}
-              </p>
-            </div>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
+            {statCards.map((card) => (
+              <article
+                key={card.key}
+                className={`rounded-2xl border p-4 md:p-6 ${card.className}`}
+              >
+                <p className={`text-sm ${card.labelClassName}`}>
+                  {card.label}
+                </p>
+                <p className="mt-2 text-3xl font-bold">{stats[card.key]}</p>
+              </article>
+            ))}
           </div>
 
-          <div className="mt-8 grid gap-6 xl:grid-cols-2">
-            <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-semibold">Últimas operaciones</h3>
-                <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
+          <div className="mt-6 grid gap-6 xl:grid-cols-2">
+            <section className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <h3 className="text-lg font-semibold md:text-xl">
+                  Últimas operaciones
+                </h3>
+
+                <span className="w-fit rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
                   {latestOperations.length}
                 </span>
               </div>
@@ -196,20 +208,21 @@ const Dashboard = () => {
                   {latestOperations.map((operation) => (
                     <article
                       key={operation.id}
-                      className="rounded-xl border border-slate-800 bg-slate-950/60 p-4"
+                      className="min-w-0 rounded-xl border border-slate-800 bg-slate-950/60 p-4"
                     >
-                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                        <div>
-                          <h4 className="font-semibold text-slate-100">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <h4 className="wrap-break-word font-semibold text-slate-100">
                             {operation.title}
                           </h4>
-                          <p className="mt-1 text-sm text-slate-400">
+
+                          <p className="mt-1 wrap-break-word text-sm text-slate-400">
                             {operation.client?.name || "Sin cliente"}
                           </p>
                         </div>
 
                         <span
-                          className={`w-fit rounded-full px-3 py-1 text-xs ${
+                          className={`w-fit shrink-0 rounded-full px-3 py-1 text-xs ${
                             statusClassName[operation.status] ||
                             "bg-slate-500/10 text-slate-300"
                           }`}
@@ -220,7 +233,9 @@ const Dashboard = () => {
 
                       <p className="mt-3 text-xs text-slate-500">
                         Creada:{" "}
-                        {new Date(operation.createdAt).toLocaleString()}
+                        <span className="text-slate-400">
+                          {new Date(operation.createdAt).toLocaleString()}
+                        </span>
                       </p>
                     </article>
                   ))}
@@ -228,12 +243,13 @@ const Dashboard = () => {
               )}
             </section>
 
-            <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-semibold">
+            <section className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <h3 className="text-lg font-semibold md:text-xl">
                   Últimas notificaciones
                 </h3>
-                <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
+
+                <span className="w-fit rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
                   {latestNotifications.length}
                 </span>
               </div>
@@ -247,20 +263,21 @@ const Dashboard = () => {
                   {latestNotifications.map((notification) => (
                     <article
                       key={notification.id}
-                      className="rounded-xl border border-slate-800 bg-slate-950/60 p-4"
+                      className="min-w-0 rounded-xl border border-slate-800 bg-slate-950/60 p-4"
                     >
-                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-                        <div>
-                          <h4 className="font-semibold text-slate-100">
+                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="min-w-0">
+                          <h4 className="wrap-break-word font-semibold text-slate-100">
                             {notification.title}
                           </h4>
-                          <p className="mt-1 text-sm text-slate-400">
+
+                          <p className="mt-1 wrap-break-word text-sm text-slate-400">
                             {notification.message}
                           </p>
                         </div>
 
                         <span
-                          className={`w-fit rounded-full px-3 py-1 text-xs ${
+                          className={`w-fit shrink-0 rounded-full px-3 py-1 text-xs ${
                             notification.status === "UNREAD"
                               ? "bg-cyan-500/10 text-cyan-300"
                               : "bg-emerald-500/10 text-emerald-300"
@@ -274,7 +291,9 @@ const Dashboard = () => {
 
                       <p className="mt-3 text-xs text-slate-500">
                         Fecha:{" "}
-                        {new Date(notification.createdAt).toLocaleString()}
+                        <span className="text-slate-400">
+                          {new Date(notification.createdAt).toLocaleString()}
+                        </span>
                       </p>
                     </article>
                   ))}
