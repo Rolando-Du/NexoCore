@@ -6,8 +6,57 @@ import AuthLayout from "../layouts/AuthLayout";
 const initialForm = {
   email: "",
   password: "",
-  tenantId: "",
 };
+
+const defaultTenantId = import.meta.env.VITE_DEFAULT_TENANT_ID;
+
+const EyeIcon = () => (
+  <svg
+    className="h-5 w-5"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth="1.8"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M2.25 12s3.75-6.75 9.75-6.75S21.75 12 21.75 12 18 18.75 12 18.75 2.25 12 2.25 12Z"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M12 15.25A3.25 3.25 0 1 0 12 8.75a3.25 3.25 0 0 0 0 6.5Z"
+    />
+  </svg>
+);
+
+const EyeOffIcon = () => (
+  <svg
+    className="h-5 w-5"
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+    strokeWidth="1.8"
+  >
+    <path strokeLinecap="round" strokeLinejoin="round" d="M3 3l18 18" />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M10.58 10.58A2 2 0 0 0 13.42 13.42"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M9.88 5.48A9.77 9.77 0 0 1 12 5.25C18 5.25 21.75 12 21.75 12a17.6 17.6 0 0 1-3.12 4.08"
+    />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      d="M6.61 6.61C3.87 8.48 2.25 12 2.25 12S6 18.75 12 18.75c1.18 0 2.27-.26 3.25-.68"
+    />
+  </svg>
+);
 
 const Login = () => {
   const navigate = useNavigate();
@@ -28,8 +77,13 @@ const Login = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
-    if (!form.email || !form.password || !form.tenantId) {
-      setError("Completá email, contraseña y Tenant ID");
+    if (!form.email || !form.password) {
+      setError("Completá email y contraseña");
+      return;
+    }
+
+    if (!defaultTenantId) {
+      setError("Falta configurar VITE_DEFAULT_TENANT_ID en el frontend");
       return;
     }
 
@@ -40,7 +94,7 @@ const Login = () => {
       await login({
         email: form.email.trim(),
         password: form.password,
-        tenantId: form.tenantId.trim(),
+        tenantId: defaultTenantId,
       });
 
       navigate("/");
@@ -109,23 +163,17 @@ const Login = () => {
                 <button
                   type="button"
                   onClick={() => setShowPassword((current) => !current)}
-                  className="px-4 text-sm text-slate-400 hover:text-cyan-300"
+                  aria-label={
+                    showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                  }
+                  title={
+                    showPassword ? "Ocultar contraseña" : "Mostrar contraseña"
+                  }
+                  className="flex items-center justify-center px-4 text-slate-400 transition hover:text-cyan-300"
                 >
-                  {showPassword ? "Ocultar" : "Ver"}
+                  {showPassword ? <EyeOffIcon /> : <EyeIcon />}
                 </button>
               </div>
-            </div>
-
-            <div>
-              <label className="text-sm text-slate-300">Tenant ID</label>
-              <input
-                name="tenantId"
-                value={form.tenantId}
-                onChange={handleChange}
-                autoComplete="off"
-                placeholder="ID de la empresa"
-                className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none placeholder:text-slate-600 focus:border-cyan-400"
-              />
             </div>
           </div>
 
@@ -138,7 +186,7 @@ const Login = () => {
           </button>
 
           <div className="mt-6 rounded-xl border border-slate-800 bg-slate-950/70 p-4 text-xs text-slate-500">
-            <p className="font-medium text-slate-400">Datos de prueba</p>
+            <p className="font-medium text-slate-400">Acceso demo</p>
             <p className="mt-2 wrap-break-word">
               Usá el usuario administrador creado desde el backend.
             </p>
