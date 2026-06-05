@@ -134,11 +134,11 @@ const Audit = () => {
   }, [getAuditLogs]);
 
   return (
-    <div>
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-3xl font-bold">Auditoría</h2>
-          <p className="mt-2 text-slate-400">
+    <div className="max-w-full overflow-hidden">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-2xl font-bold md:text-3xl">Auditoría</h2>
+          <p className="mt-2 text-sm text-slate-400 md:text-base">
             Consultá acciones realizadas dentro del sistema.
           </p>
         </div>
@@ -146,7 +146,7 @@ const Audit = () => {
         <button
           type="button"
           onClick={getAuditLogs}
-          className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-cyan-400"
+          className="w-full rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-cyan-400 md:w-auto"
         >
           Actualizar
         </button>
@@ -158,12 +158,12 @@ const Audit = () => {
         </div>
       )}
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-[340px_1fr]">
+      <div className="mt-6 grid gap-6 xl:grid-cols-[340px_1fr]">
         <aside className="space-y-6">
-          <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-            <h3 className="text-xl font-semibold">Filtros</h3>
+          <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6">
+            <h3 className="text-lg font-semibold md:text-xl">Filtros</h3>
 
-            <div className="mt-6 space-y-4">
+            <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
               <div>
                 <label className="text-sm text-slate-300">Módulo</label>
                 <select
@@ -206,16 +206,16 @@ const Audit = () => {
             </button>
           </section>
 
-          <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
+          <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6">
             <p className="text-sm text-slate-400">Registros encontrados</p>
             <p className="mt-2 text-3xl font-bold text-cyan-300">{total}</p>
           </section>
         </aside>
 
-        <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-semibold">Registros</h3>
-            <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
+        <section className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-lg font-semibold md:text-xl">Registros</h3>
+            <span className="w-fit rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
               {logs.length} visibles
             </span>
           </div>
@@ -231,10 +231,10 @@ const Audit = () => {
               {logs.map((log) => (
                 <article
                   key={log.id}
-                  className="rounded-xl border border-slate-800 bg-slate-950/60 p-5"
+                  className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 md:p-5"
                 >
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div>
+                    <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span
                           className={`rounded-full px-3 py-1 text-xs ${
@@ -256,11 +256,11 @@ const Audit = () => {
                         )}
                       </div>
 
-                      <h4 className="mt-3 font-semibold text-slate-100">
+                      <h4 className="mt-3 wrap-break-word font-semibold text-slate-100">
                         {log.metadata?.event || "Evento del sistema"}
                       </h4>
 
-                      <div className="mt-3 grid gap-2 text-xs text-slate-500 md:grid-cols-2">
+                      <div className="mt-3 grid gap-2 text-xs text-slate-500 sm:grid-cols-2">
                         <p>
                           Usuario:{" "}
                           <span className="text-slate-300">
@@ -268,7 +268,7 @@ const Audit = () => {
                           </span>
                         </p>
 
-                        <p>
+                        <p className="break-all">
                           Email:{" "}
                           <span className="text-slate-300">
                             {log.user?.email || "-"}
@@ -282,7 +282,7 @@ const Audit = () => {
                           </span>
                         </p>
 
-                        <p>
+                        <p className="break-all">
                           IP:{" "}
                           <span className="text-slate-300">
                             {log.ip || "-"}
@@ -290,7 +290,7 @@ const Audit = () => {
                         </p>
 
                         {log.entityId && (
-                          <p className="md:col-span-2">
+                          <p className="break-all sm:col-span-2">
                             Entity ID:{" "}
                             <span className="text-slate-300">
                               {log.entityId}
@@ -303,7 +303,7 @@ const Audit = () => {
                     <button
                       type="button"
                       onClick={() => getAuditDetail(log.id)}
-                      className="rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-slate-100 hover:bg-cyan-500 hover:text-slate-950"
+                      className="w-full rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-slate-100 hover:bg-cyan-500 hover:text-slate-950 lg:w-auto"
                     >
                       Ver detalle
                     </button>
@@ -317,20 +317,20 @@ const Audit = () => {
 
       {isDetailModalOpen && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4 py-6"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 sm:items-center sm:px-4 sm:py-6"
           onClick={closeDetailModal}
         >
           <div
-            className="max-h-[90vh] w-full max-w-6xl overflow-hidden rounded-2xl border border-slate-800 bg-slate-950 shadow-2xl"
+            className="max-h-[94vh] w-full overflow-hidden rounded-t-2xl border border-slate-800 bg-slate-950 shadow-2xl sm:max-w-6xl sm:rounded-2xl"
             onClick={(event) => event.stopPropagation()}
           >
-            <div className="flex items-start justify-between gap-4 border-b border-slate-800 bg-slate-900 px-6 py-5">
-              <div>
-                <h3 className="text-xl font-semibold text-slate-100">
+            <div className="flex flex-col gap-4 border-b border-slate-800 bg-slate-900 px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-6 sm:py-5">
+              <div className="min-w-0">
+                <h3 className="text-lg font-semibold text-slate-100 sm:text-xl">
                   Detalle de auditoría
                 </h3>
 
-                <p className="mt-1 text-sm text-slate-400">
+                <p className="mt-1 break-all text-xs text-slate-400 sm:text-sm">
                   {selectedLog?.id
                     ? `ID: ${selectedLog.id}`
                     : "Cargando detalle..."}
@@ -340,113 +340,113 @@ const Audit = () => {
               <button
                 type="button"
                 onClick={closeDetailModal}
-                className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-red-400 hover:text-red-300"
+                className="w-full rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-red-400 hover:text-red-300 sm:w-auto"
               >
                 Cerrar
               </button>
             </div>
 
-            <div className="max-h-[calc(90vh-90px)] overflow-y-auto p-6">
+            <div className="max-h-[calc(94vh-112px)] overflow-y-auto p-4 sm:p-6">
               {loadingDetail ? (
                 <p className="text-slate-400">Cargando detalle...</p>
               ) : selectedLog ? (
                 <>
-                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
                       <p className="text-xs text-slate-400">Acción</p>
-                      <p className="mt-1 font-semibold text-slate-100">
+                      <p className="mt-1 wrap-break-word font-semibold text-slate-100">
                         {selectedLog.action}
                       </p>
                     </div>
 
                     <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
                       <p className="text-xs text-slate-400">Módulo</p>
-                      <p className="mt-1 font-semibold text-slate-100">
+                      <p className="mt-1 wrap-break-word font-semibold text-slate-100">
                         {selectedLog.module}
                       </p>
                     </div>
 
                     <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
                       <p className="text-xs text-slate-400">Usuario</p>
-                      <p className="mt-1 font-semibold text-slate-100">
+                      <p className="mt-1 wrap-break-word font-semibold text-slate-100">
                         {selectedLog.user?.name || "Sistema"}
                       </p>
                     </div>
 
                     <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-4">
                       <p className="text-xs text-slate-400">Fecha</p>
-                      <p className="mt-1 font-semibold text-slate-100">
+                      <p className="mt-1 wrap-break-word font-semibold text-slate-100">
                         {new Date(selectedLog.createdAt).toLocaleString()}
                       </p>
                     </div>
                   </div>
 
                   <div className="mt-6 grid gap-6 lg:grid-cols-2">
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-5">
+                    <div className="min-w-0 rounded-xl border border-slate-800 bg-slate-900/70 p-4 sm:p-5">
                       <h4 className="font-semibold text-slate-100">
                         Valor anterior
                       </h4>
 
-                      <pre className="mt-4 max-h-96 overflow-auto rounded-lg bg-slate-950 p-4 text-xs text-slate-300">
+                      <pre className="mt-4 max-h-80 overflow-auto whitespace-pre-wrap wrap-break-word rounded-lg bg-slate-950 p-4 text-xs text-slate-300">
                         {formatJson(selectedLog.oldValue)}
                       </pre>
                     </div>
 
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-5">
+                    <div className="min-w-0 rounded-xl border border-slate-800 bg-slate-900/70 p-4 sm:p-5">
                       <h4 className="font-semibold text-slate-100">
                         Valor nuevo
                       </h4>
 
-                      <pre className="mt-4 max-h-96 overflow-auto rounded-lg bg-slate-950 p-4 text-xs text-slate-300">
+                      <pre className="mt-4 max-h-80 overflow-auto whitespace-pre-wrap wrap-break-word rounded-lg bg-slate-950 p-4 text-xs text-slate-300">
                         {formatJson(selectedLog.newValue)}
                       </pre>
                     </div>
 
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-5 lg:col-span-2">
+                    <div className="min-w-0 rounded-xl border border-slate-800 bg-slate-900/70 p-4 sm:p-5 lg:col-span-2">
                       <h4 className="font-semibold text-slate-100">
                         Metadata
                       </h4>
 
-                      <pre className="mt-4 max-h-96 overflow-auto rounded-lg bg-slate-950 p-4 text-xs text-slate-300">
+                      <pre className="mt-4 max-h-80 overflow-auto whitespace-pre-wrap wrap-break-word rounded-lg bg-slate-950 p-4 text-xs text-slate-300">
                         {formatJson(selectedLog.metadata)}
                       </pre>
                     </div>
 
-                    <div className="rounded-xl border border-slate-800 bg-slate-900/70 p-5 lg:col-span-2">
+                    <div className="min-w-0 rounded-xl border border-slate-800 bg-slate-900/70 p-4 sm:p-5 lg:col-span-2">
                       <h4 className="font-semibold text-slate-100">
                         Información técnica
                       </h4>
 
-                      <div className="mt-4 grid gap-3 text-sm text-slate-400 md:grid-cols-2">
-                        <p>
+                      <div className="mt-4 grid gap-3 text-sm text-slate-400 sm:grid-cols-2">
+                        <p className="break-all">
                           Entidad:{" "}
                           <span className="text-slate-200">
                             {selectedLog.entity || "-"}
                           </span>
                         </p>
 
-                        <p>
+                        <p className="break-all">
                           Entity ID:{" "}
                           <span className="text-slate-200">
                             {selectedLog.entityId || "-"}
                           </span>
                         </p>
 
-                        <p>
+                        <p className="break-all">
                           IP:{" "}
                           <span className="text-slate-200">
                             {selectedLog.ip || "-"}
                           </span>
                         </p>
 
-                        <p>
+                        <p className="break-all">
                           Email:{" "}
                           <span className="text-slate-200">
                             {selectedLog.user?.email || "-"}
                           </span>
                         </p>
 
-                        <p className="md:col-span-2">
+                        <p className="break-all sm:col-span-2">
                           User Agent:{" "}
                           <span className="text-slate-200">
                             {selectedLog.userAgent || "-"}

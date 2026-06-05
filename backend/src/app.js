@@ -18,20 +18,27 @@ import {
 
 const app = express();
 
-app.use(helmet());
-app.use(cors());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: {
+      policy: "cross-origin",
+    },
+  })
+);
+
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 app.use(morgan("dev"));
+
 app.use("/uploads", express.static("uploads"));
 
 setupSwagger(app);
-
-app.use("/api/auth", authRoutes);
-app.use("/api/clients", clientRoutes);
-app.use("/api/operations", operationRoutes);
-app.use("/api/audit", auditRoutes);
-app.use("/api/notifications", notificationRoutes);
-app.use("/api/attachments", attachmentRoutes);
 
 app.get("/health", (req, res) => {
   res.json({
@@ -50,6 +57,13 @@ app.get("/", (req, res) => {
     auth: "/api/auth/register-tenant",
   });
 });
+
+app.use("/api/auth", authRoutes);
+app.use("/api/clients", clientRoutes);
+app.use("/api/operations", operationRoutes);
+app.use("/api/audit", auditRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/attachments", attachmentRoutes);
 
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);

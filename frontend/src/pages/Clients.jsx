@@ -75,11 +75,11 @@ const Clients = () => {
   }, [getClients]);
 
   return (
-    <div>
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+    <div className="max-w-full overflow-hidden">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h2 className="text-3xl font-bold">Clientes</h2>
-          <p className="mt-2 text-slate-400">
+          <h2 className="text-2xl font-bold md:text-3xl">Clientes</h2>
+          <p className="mt-2 text-sm text-slate-400 md:text-base">
             Gestioná clientes asociados a la empresa actual.
           </p>
         </div>
@@ -87,7 +87,7 @@ const Clients = () => {
         <button
           type="button"
           onClick={getClients}
-          className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-cyan-400"
+          className="w-full rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-cyan-400 md:w-auto"
         >
           Actualizar
         </button>
@@ -99,12 +99,12 @@ const Clients = () => {
         </div>
       )}
 
-      <div className="mt-8 grid gap-6 lg:grid-cols-[420px_1fr]">
+      <div className="mt-6 grid gap-6 xl:grid-cols-[420px_1fr]">
         <form
           onSubmit={handleSubmit}
-          className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6"
+          className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6"
         >
-          <h3 className="text-xl font-semibold">Nuevo cliente</h3>
+          <h3 className="text-lg font-semibold md:text-xl">Nuevo cliente</h3>
           <p className="mt-1 text-sm text-slate-400">
             Cargá los datos principales del cliente.
           </p>
@@ -175,10 +175,10 @@ const Clients = () => {
           </button>
         </form>
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-semibold">Listado</h3>
-            <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
+        <div className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-lg font-semibold md:text-xl">Listado</h3>
+            <span className="w-fit rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
               {clients.length} clientes
             </span>
           </div>
@@ -190,55 +190,113 @@ const Clients = () => {
               Todavía no hay clientes cargados.
             </p>
           ) : (
-            <div className="mt-6 overflow-x-auto">
-              <table className="w-full border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-slate-800 text-left text-slate-400">
-                    <th className="py-3 pr-4">Nombre</th>
-                    <th className="py-3 pr-4">Email</th>
-                    <th className="py-3 pr-4">Teléfono</th>
-                    <th className="py-3 pr-4">Estado</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {clients.map((client) => (
-                    <tr
-                      key={client.id}
-                      className="border-b border-slate-800/70"
-                    >
-                      <td className="py-4 pr-4">
-                        <p className="font-medium text-slate-100">
+            <>
+              <div className="mt-6 space-y-4 md:hidden">
+                {clients.map((client) => (
+                  <article
+                    key={client.id}
+                    className="rounded-xl border border-slate-800 bg-slate-950/60 p-4"
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h4 className="truncate font-semibold text-slate-100">
                           {client.name}
-                        </p>
-                        <p className="text-xs text-slate-500">
+                        </h4>
+                        <p className="mt-1 text-xs text-slate-500">
                           {client.taxId || "Sin CUIT"}
                         </p>
-                      </td>
+                      </div>
 
-                      <td className="py-4 pr-4 text-slate-300">
-                        {client.email || "-"}
-                      </td>
+                      <span
+                        className={`shrink-0 rounded-full px-3 py-1 text-xs ${
+                          client.isActive
+                            ? "bg-emerald-500/10 text-emerald-300"
+                            : "bg-red-500/10 text-red-300"
+                        }`}
+                      >
+                        {client.isActive ? "Activo" : "Inactivo"}
+                      </span>
+                    </div>
 
-                      <td className="py-4 pr-4 text-slate-300">
-                        {client.phone || "-"}
-                      </td>
-
-                      <td className="py-4 pr-4">
-                        <span
-                          className={`rounded-full px-3 py-1 text-xs ${
-                            client.isActive
-                              ? "bg-emerald-500/10 text-emerald-300"
-                              : "bg-red-500/10 text-red-300"
-                          }`}
-                        >
-                          {client.isActive ? "Activo" : "Inactivo"}
+                    <div className="mt-4 space-y-2 text-sm">
+                      <p className="text-slate-400">
+                        Email:{" "}
+                        <span className="break-all text-slate-200">
+                          {client.email || "-"}
                         </span>
-                      </td>
+                      </p>
+
+                      <p className="text-slate-400">
+                        Teléfono:{" "}
+                        <span className="text-slate-200">
+                          {client.phone || "-"}
+                        </span>
+                      </p>
+
+                      {client.legalName && (
+                        <p className="text-slate-400">
+                          Razón social:{" "}
+                          <span className="text-slate-200">
+                            {client.legalName}
+                          </span>
+                        </p>
+                      )}
+                    </div>
+                  </article>
+                ))}
+              </div>
+
+              <div className="mt-6 hidden overflow-x-auto md:block">
+                <table className="w-full min-w-180 border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b border-slate-800 text-left text-slate-400">
+                      <th className="py-3 pr-4">Nombre</th>
+                      <th className="py-3 pr-4">Email</th>
+                      <th className="py-3 pr-4">Teléfono</th>
+                      <th className="py-3 pr-4">Estado</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+
+                  <tbody>
+                    {clients.map((client) => (
+                      <tr
+                        key={client.id}
+                        className="border-b border-slate-800/70"
+                      >
+                        <td className="py-4 pr-4">
+                          <p className="font-medium text-slate-100">
+                            {client.name}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {client.taxId || "Sin CUIT"}
+                          </p>
+                        </td>
+
+                        <td className="py-4 pr-4 text-slate-300">
+                          {client.email || "-"}
+                        </td>
+
+                        <td className="py-4 pr-4 text-slate-300">
+                          {client.phone || "-"}
+                        </td>
+
+                        <td className="py-4 pr-4">
+                          <span
+                            className={`rounded-full px-3 py-1 text-xs ${
+                              client.isActive
+                                ? "bg-emerald-500/10 text-emerald-300"
+                                : "bg-red-500/10 text-red-300"
+                            }`}
+                          >
+                            {client.isActive ? "Activo" : "Inactivo"}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </div>
