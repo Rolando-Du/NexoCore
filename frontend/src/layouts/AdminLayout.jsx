@@ -62,6 +62,18 @@ const AdminLayout = () => {
           >
             Evidencias
           </NavLink>
+          <NavLink
+            to="/audit"
+            className={({ isActive }) =>
+              `block rounded-lg px-3 py-2 ${
+                isActive
+                  ? "bg-cyan-500/10 text-cyan-300"
+                  : "text-slate-200 hover:bg-slate-800 hover:text-cyan-400"
+              }`
+            }
+          >
+            Auditoría
+          </NavLink>
 
           <NavLink
             to="/notifications"

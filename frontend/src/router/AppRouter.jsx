@@ -6,6 +6,7 @@ import Clients from "../pages/Clients";
 import Operations from "../pages/Operations";
 import Notifications from "../pages/Notifications";
 import Evidences from "../pages/Evidences";
+import Audit from "../pages/Audit";
 import AdminLayout from "../layouts/AdminLayout";
 import ProtectedRoute from "../components/common/ProtectedRoute";
 
@@ -28,6 +29,7 @@ const AppRouter = () => {
           <Route path="operations" element={<Operations />} />
           <Route path="notifications" element={<Notifications />} />
           <Route path="evidences" element={<Evidences />} />
+          <Route path="audit" element={<Audit />} />
         </Route>
       </Routes>
     </BrowserRouter>
