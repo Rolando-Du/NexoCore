@@ -1,4 +1,4 @@
-import { Outlet } from "react-router";
+import { NavLink, Outlet } from "react-router";
 import { useAuth } from "../context/AuthContext";
 
 const AdminLayout = () => {
@@ -11,18 +11,57 @@ const AdminLayout = () => {
         <p className="text-xs text-slate-400 mt-1">Enterprise SaaS</p>
 
         <nav className="mt-8 space-y-3 text-sm">
-          <a className="block text-slate-200 hover:text-cyan-400" href="/">
+          <NavLink
+            to="/"
+            className={({ isActive }) =>
+              `block rounded-lg px-3 py-2 ${
+                isActive
+                  ? "bg-cyan-500/10 text-cyan-300"
+                  : "text-slate-200 hover:bg-slate-800 hover:text-cyan-400"
+              }`
+            }
+          >
             Dashboard
-          </a>
-          <a className="block text-slate-200 hover:text-cyan-400" href="/clients">
+          </NavLink>
+
+          <NavLink
+            to="/clients"
+            className={({ isActive }) =>
+              `block rounded-lg px-3 py-2 ${
+                isActive
+                  ? "bg-cyan-500/10 text-cyan-300"
+                  : "text-slate-200 hover:bg-slate-800 hover:text-cyan-400"
+              }`
+            }
+          >
             Clientes
-          </a>
-          <a className="block text-slate-200 hover:text-cyan-400" href="/operations">
+          </NavLink>
+
+          <NavLink
+            to="/operations"
+            className={({ isActive }) =>
+              `block rounded-lg px-3 py-2 ${
+                isActive
+                  ? "bg-cyan-500/10 text-cyan-300"
+                  : "text-slate-200 hover:bg-slate-800 hover:text-cyan-400"
+              }`
+            }
+          >
             Operaciones
-          </a>
-          <a className="block text-slate-200 hover:text-cyan-400" href="/notifications">
+          </NavLink>
+
+          <NavLink
+            to="/notifications"
+            className={({ isActive }) =>
+              `block rounded-lg px-3 py-2 ${
+                isActive
+                  ? "bg-cyan-500/10 text-cyan-300"
+                  : "text-slate-200 hover:bg-slate-800 hover:text-cyan-400"
+              }`
+            }
+          >
             Notificaciones
-          </a>
+          </NavLink>
         </nav>
       </aside>
 
@@ -36,7 +75,9 @@ const AdminLayout = () => {
           <div className="flex items-center gap-4">
             <div className="text-right hidden sm:block">
               <p className="text-sm font-medium">{userSession?.user?.name}</p>
-              <p className="text-xs text-slate-400">{userSession?.role?.name}</p>
+              <p className="text-xs text-slate-400">
+                {userSession?.role?.name}
+              </p>
             </div>
 
             <button
