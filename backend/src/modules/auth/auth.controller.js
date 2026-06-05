@@ -60,3 +60,11 @@ export const login = async (req, res, next) => {
     next(error);
   }
 };
+
+export const me = async (req, res) => {
+  res.json({
+    success: true,
+    message: "Usuario autenticado correctamente",
+    data: req.context,
+  });
+};

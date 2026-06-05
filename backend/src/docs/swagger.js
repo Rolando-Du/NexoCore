@@ -15,6 +15,15 @@ const swaggerOptions = {
         description: "Servidor local",
       },
     ],
+    components: {
+      securitySchemes: {
+        bearerAuth: {
+          type: "http",
+          scheme: "bearer",
+          bearerFormat: "JWT",
+        },
+      },
+    },
   },
   apis: ["./src/**/*.js"],
 };

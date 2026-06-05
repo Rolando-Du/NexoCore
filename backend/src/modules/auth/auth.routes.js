@@ -1,5 +1,6 @@
 import { Router } from "express";
 import * as authController from "./auth.controller.js";
+import { authMiddleware } from "../../middlewares/auth.middleware.js";
 
 const router = Router();
 
@@ -88,5 +89,21 @@ router.post("/register-tenant", authController.registerTenant);
  *         description: Usuario sin acceso a la empresa
  */
 router.post("/login", authController.login);
+/**
+ * @swagger
+ * /api/auth/me:
+ *   get:
+ *     summary: Obtener usuario autenticado
+ *     tags:
+ *       - Auth
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Usuario autenticado correctamente
+ *       401:
+ *         description: Token inválido o no enviado
+ */
+router.get("/me", authMiddleware, authController.me);
 
 export default router;
