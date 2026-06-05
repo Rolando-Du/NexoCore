@@ -113,7 +113,7 @@ const Evidences = () => {
 
       setFile(null);
       setDescription("");
-      event.target.reset();
+      event.currentTarget.reset();
 
       setSuccessMessage("Evidencia subida correctamente");
       await getAttachments(selectedOperationId);
@@ -149,11 +149,11 @@ const Evidences = () => {
   }, [selectedOperationId, getAttachments]);
 
   return (
-    <div>
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-3xl font-bold">Evidencias</h2>
-          <p className="mt-2 text-slate-400">
+    <div className="max-w-full overflow-hidden">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-2xl font-bold md:text-3xl">Evidencias</h2>
+          <p className="mt-2 text-sm text-slate-400 md:text-base">
             Subí y consultá fotos, documentos y archivos asociados a operaciones.
           </p>
         </div>
@@ -162,7 +162,7 @@ const Evidences = () => {
           type="button"
           onClick={() => getAttachments(selectedOperationId)}
           disabled={!selectedOperationId}
-          className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-cyan-400 disabled:opacity-60"
+          className="w-full rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-cyan-400 disabled:opacity-60 md:w-auto"
         >
           Actualizar
         </button>
@@ -180,10 +180,12 @@ const Evidences = () => {
         </div>
       )}
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-[420px_1fr]">
+      <div className="mt-6 grid gap-6 xl:grid-cols-[420px_1fr]">
         <aside className="space-y-6">
-          <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-            <h3 className="text-xl font-semibold">Seleccionar operación</h3>
+          <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6">
+            <h3 className="text-lg font-semibold md:text-xl">
+              Seleccionar operación
+            </h3>
 
             {loadingOperations ? (
               <p className="mt-6 text-slate-400">Cargando operaciones...</p>
@@ -212,25 +214,41 @@ const Evidences = () => {
 
             {selectedOperation && (
               <div className="mt-6 rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-                <p className="text-sm text-slate-400">Operación seleccionada</p>
-                <h4 className="mt-2 font-semibold text-slate-100">
+                <p className="text-sm text-slate-400">
+                  Operación seleccionada
+                </p>
+
+                <h4 className="mt-2 wrap-break-word font-semibold text-slate-100">
                   {selectedOperation.title}
                 </h4>
-                <p className="mt-1 text-xs text-slate-500">
-                  Estado: {selectedOperation.status}
-                </p>
-                <p className="mt-1 text-xs text-slate-500">
-                  Cliente: {selectedOperation.client?.name || "Sin cliente"}
-                </p>
+
+                <div className="mt-3 space-y-1 text-xs text-slate-500">
+                  <p>
+                    Estado:{" "}
+                    <span className="text-slate-300">
+                      {selectedOperation.status}
+                    </span>
+                  </p>
+
+                  <p className="wrap-break-word">
+                    Cliente:{" "}
+                    <span className="text-slate-300">
+                      {selectedOperation.client?.name || "Sin cliente"}
+                    </span>
+                  </p>
+                </div>
               </div>
             )}
           </section>
 
           <form
             onSubmit={handleUpload}
-            className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6"
+            className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6"
           >
-            <h3 className="text-xl font-semibold">Subir evidencia</h3>
+            <h3 className="text-lg font-semibold md:text-xl">
+              Subir evidencia
+            </h3>
+
             <p className="mt-1 text-sm text-slate-400">
               Se permiten imágenes, PDF, Word y Excel.
             </p>
@@ -241,7 +259,7 @@ const Evidences = () => {
                 <input
                   type="file"
                   onChange={handleFileChange}
-                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-sm text-slate-100 file:mr-4 file:rounded-lg file:border-0 file:bg-cyan-500 file:px-4 file:py-2 file:font-semibold file:text-slate-950 hover:file:bg-cyan-400"
+                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-3 text-sm text-slate-100 file:mr-3 file:rounded-lg file:border-0 file:bg-cyan-500 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-slate-950 hover:file:bg-cyan-400"
                 />
               </div>
 
@@ -266,10 +284,13 @@ const Evidences = () => {
           </form>
         </aside>
 
-        <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-semibold">Archivos asociados</h3>
-            <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
+        <section className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-lg font-semibold md:text-xl">
+              Archivos asociados
+            </h3>
+
+            <span className="w-fit rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
               {attachments.length} evidencias
             </span>
           </div>
@@ -285,9 +306,9 @@ const Evidences = () => {
               {attachments.map((attachment) => (
                 <article
                   key={attachment.id}
-                  className="rounded-xl border border-slate-800 bg-slate-950/60 p-5"
+                  className="min-w-0 rounded-xl border border-slate-800 bg-slate-950/60 p-4 md:p-5"
                 >
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
                     <span
                       className={`rounded-full px-3 py-1 text-xs ${
                         typeClassName[attachment.type] ||
@@ -312,21 +333,21 @@ const Evidences = () => {
                       <img
                         src={getFileUrl(attachment.url)}
                         alt={attachment.originalName}
-                        className="h-44 w-full object-cover"
+                        className="h-48 w-full object-cover md:h-44"
                       />
                     </a>
                   )}
 
-                  <h4 className="mt-4 font-semibold text-slate-100">
+                  <h4 className="mt-4 wrap-break-word font-semibold text-slate-100">
                     {attachment.originalName}
                   </h4>
 
-                  <p className="mt-2 text-sm text-slate-400">
+                  <p className="mt-2 wrap-break-word text-sm text-slate-400">
                     {attachment.description || "Sin descripción"}
                   </p>
 
                   <div className="mt-4 space-y-1 text-xs text-slate-500">
-                    <p>
+                    <p className="wrap-break-word">
                       Subido por:{" "}
                       <span className="text-slate-300">
                         {attachment.uploadedBy?.name || "-"}
@@ -340,7 +361,7 @@ const Evidences = () => {
                       </span>
                     </p>
 
-                    <p>
+                    <p className="break-all">
                       MIME:{" "}
                       <span className="text-slate-300">
                         {attachment.mimeType}
@@ -352,7 +373,7 @@ const Evidences = () => {
                     href={getFileUrl(attachment.url)}
                     target="_blank"
                     rel="noreferrer"
-                    className="mt-5 inline-flex rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-slate-100 hover:bg-cyan-500 hover:text-slate-950"
+                    className="mt-5 inline-flex w-full justify-center rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-slate-100 hover:bg-cyan-500 hover:text-slate-950 sm:w-auto"
                   >
                     Abrir archivo
                   </a>

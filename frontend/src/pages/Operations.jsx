@@ -224,11 +224,11 @@ const Operations = () => {
   }, [loadInitialData]);
 
   return (
-    <div>
-      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h2 className="text-3xl font-bold">Operaciones</h2>
-          <p className="mt-2 text-slate-400">
+    <div className="max-w-full overflow-hidden">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <h2 className="text-2xl font-bold md:text-3xl">Operaciones</h2>
+          <p className="mt-2 text-sm text-slate-400 md:text-base">
             Gestioná tareas, órdenes de trabajo, incidentes e inspecciones.
           </p>
         </div>
@@ -236,7 +236,7 @@ const Operations = () => {
         <button
           type="button"
           onClick={getOperations}
-          className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-cyan-400"
+          className="w-full rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-cyan-400 md:w-auto"
         >
           Actualizar
         </button>
@@ -254,12 +254,14 @@ const Operations = () => {
         </div>
       )}
 
-      <div className="mt-8 grid gap-6 xl:grid-cols-[420px_1fr]">
+      <div className="mt-6 grid gap-6 xl:grid-cols-[420px_1fr]">
         <form
           onSubmit={handleSubmit}
-          className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6"
+          className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6"
         >
-          <h3 className="text-xl font-semibold">Nueva operación</h3>
+          <h3 className="text-lg font-semibold md:text-xl">
+            Nueva operación
+          </h3>
           <p className="mt-1 text-sm text-slate-400">
             Creá una tarea, orden de trabajo o incidente.
           </p>
@@ -322,31 +324,35 @@ const Operations = () => {
               />
             </div>
 
-            <div>
-              <label className="text-sm text-slate-300">Prioridad</label>
-              <select
-                name="priority"
-                value={form.priority}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-              >
-                {priorities.map((priority) => (
-                  <option key={priority.value} value={priority.value}>
-                    {priority.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+              <div>
+                <label className="text-sm text-slate-300">Prioridad</label>
+                <select
+                  name="priority"
+                  value={form.priority}
+                  onChange={handleChange}
+                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                >
+                  {priorities.map((priority) => (
+                    <option key={priority.value} value={priority.value}>
+                      {priority.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-            <div>
-              <label className="text-sm text-slate-300">Fecha programada</label>
-              <input
-                type="datetime-local"
-                name="scheduledAt"
-                value={form.scheduledAt}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-              />
+              <div>
+                <label className="text-sm text-slate-300">
+                  Fecha programada
+                </label>
+                <input
+                  type="datetime-local"
+                  name="scheduledAt"
+                  value={form.scheduledAt}
+                  onChange={handleChange}
+                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                />
+              </div>
             </div>
           </div>
 
@@ -358,10 +364,10 @@ const Operations = () => {
           </button>
         </form>
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-semibold">Listado</h3>
-            <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
+        <section className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <h3 className="text-lg font-semibold md:text-xl">Listado</h3>
+            <span className="w-fit rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
               {operations.length} operaciones
             </span>
           </div>
@@ -377,10 +383,10 @@ const Operations = () => {
               {operations.map((operation) => (
                 <article
                   key={operation.id}
-                  className="rounded-xl border border-slate-800 bg-slate-950/60 p-5"
+                  className="rounded-xl border border-slate-800 bg-slate-950/60 p-4 md:p-5"
                 >
-                  <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                    <div>
+                  <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <span
                           className={`rounded-full px-3 py-1 text-xs ${
@@ -405,16 +411,16 @@ const Operations = () => {
                         </span>
                       </div>
 
-                      <h4 className="mt-3 text-lg font-semibold text-slate-100">
+                      <h4 className="mt-3 wrap-break-word text-base font-semibold text-slate-100 md:text-lg">
                         {operation.title}
                       </h4>
 
-                      <p className="mt-1 text-sm text-slate-400">
+                      <p className="mt-1 wrap-break-word text-sm text-slate-400">
                         {operation.description || "Sin descripción"}
                       </p>
 
-                      <div className="mt-4 grid gap-2 text-xs text-slate-400 md:grid-cols-2">
-                        <p>
+                      <div className="mt-4 grid gap-2 text-xs text-slate-400 sm:grid-cols-2">
+                        <p className="wrap-break-word">
                           Cliente:{" "}
                           <span className="text-slate-200">
                             {operation.client?.name || "Sin cliente"}
@@ -450,7 +456,7 @@ const Operations = () => {
                       </div>
                     </div>
 
-                    <div className="min-w-56">
+                    <div className="w-full xl:w-60 xl:shrink-0">
                       <label className="text-xs text-slate-400">
                         Cambiar estado
                       </label>
@@ -486,7 +492,7 @@ const Operations = () => {
               ))}
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );
