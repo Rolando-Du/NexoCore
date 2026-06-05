@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../services/api";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 
 const statusLabels = {
   DRAFT: "Borrador",
@@ -65,7 +65,7 @@ const Dashboard = () => {
     return notifications.slice(0, 5);
   }, [notifications]);
 
-  const loadDashboard = async () => {
+  const loadDashboard = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -93,11 +93,17 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadDashboard();
-  }, []);
+    const timerId = window.setTimeout(() => {
+      loadDashboard();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [loadDashboard]);
 
   return (
     <div>
@@ -110,6 +116,7 @@ const Dashboard = () => {
         </div>
 
         <button
+          type="button"
           onClick={loadDashboard}
           className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-cyan-400"
         >
@@ -223,7 +230,9 @@ const Dashboard = () => {
 
             <section className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-semibold">Últimas notificaciones</h3>
+                <h3 className="text-xl font-semibold">
+                  Últimas notificaciones
+                </h3>
                 <span className="rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
                   {latestNotifications.length}
                 </span>

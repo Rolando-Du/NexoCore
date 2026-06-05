@@ -1,13 +1,12 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../services/api";
-
-const AuthContext = createContext(null);
+import { AuthContext } from "./auth-context";
 
 export const AuthProvider = ({ children }) => {
   const [userSession, setUserSession] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const login = async ({ email, password, tenantId }) => {
+  const login = useCallback(async ({ email, password, tenantId }) => {
     const response = await api.post("/auth/login", {
       email,
       password,
@@ -29,9 +28,9 @@ export const AuthProvider = ({ children }) => {
     setUserSession(session);
 
     return session;
-  };
+  }, []);
 
-  const loadSession = async () => {
+  const loadSession = useCallback(async () => {
     try {
       const token = localStorage.getItem("nexocore_token");
 
@@ -46,38 +45,38 @@ export const AuthProvider = ({ children }) => {
         ...response.data.data,
         token,
       });
-    } catch (error) {
+    } catch {
       localStorage.removeItem("nexocore_token");
       setUserSession(null);
     } finally {
       setLoading(false);
     }
-  };
-
-  const logout = () => {
-    localStorage.removeItem("nexocore_token");
-    setUserSession(null);
-  };
-
-  useEffect(() => {
-    loadSession();
   }, []);
 
-  return (
-    <AuthContext.Provider
-      value={{
-        userSession,
-        loading,
-        login,
-        logout,
-        isAuthenticated: Boolean(userSession),
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
-  );
-};
+  const logout = useCallback(() => {
+    localStorage.removeItem("nexocore_token");
+    setUserSession(null);
+  }, []);
 
-export const useAuth = () => {
-  return useContext(AuthContext);
+  useEffect(() => {
+    const timerId = window.setTimeout(() => {
+      loadSession();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [loadSession]);
+
+  const value = useMemo(() => {
+    return {
+      userSession,
+      loading,
+      login,
+      logout,
+      isAuthenticated: Boolean(userSession),
+    };
+  }, [userSession, loading, login, logout]);
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { api } from "../services/api";
 
 const initialForm = {
@@ -22,19 +22,22 @@ const Clients = () => {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState("");
 
-  const getClients = async () => {
+  const getClients = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
 
       const response = await api.get("/clients");
+
       setClients(response.data.data);
     } catch (error) {
-      setError(error.response?.data?.message || "No se pudieron obtener los clientes");
+      setError(
+        error.response?.data?.message || "No se pudieron obtener los clientes"
+      );
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const handleChange = (event) => {
     setForm({
@@ -62,8 +65,14 @@ const Clients = () => {
   };
 
   useEffect(() => {
-    getClients();
-  }, []);
+    const timerId = window.setTimeout(() => {
+      getClients();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [getClients]);
 
   return (
     <div>
@@ -76,6 +85,7 @@ const Clients = () => {
         </div>
 
         <button
+          type="button"
           onClick={getClients}
           className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-cyan-400"
         >
@@ -176,7 +186,9 @@ const Clients = () => {
           {loading ? (
             <p className="mt-6 text-slate-400">Cargando clientes...</p>
           ) : clients.length === 0 ? (
-            <p className="mt-6 text-slate-400">Todavía no hay clientes cargados.</p>
+            <p className="mt-6 text-slate-400">
+              Todavía no hay clientes cargados.
+            </p>
           ) : (
             <div className="mt-6 overflow-x-auto">
               <table className="w-full border-collapse text-sm">
@@ -190,17 +202,27 @@ const Clients = () => {
                 </thead>
                 <tbody>
                   {clients.map((client) => (
-                    <tr key={client.id} className="border-b border-slate-800/70">
+                    <tr
+                      key={client.id}
+                      className="border-b border-slate-800/70"
+                    >
                       <td className="py-4 pr-4">
-                        <p className="font-medium text-slate-100">{client.name}</p>
-                        <p className="text-xs text-slate-500">{client.taxId || "Sin CUIT"}</p>
+                        <p className="font-medium text-slate-100">
+                          {client.name}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {client.taxId || "Sin CUIT"}
+                        </p>
                       </td>
+
                       <td className="py-4 pr-4 text-slate-300">
                         {client.email || "-"}
                       </td>
+
                       <td className="py-4 pr-4 text-slate-300">
                         {client.phone || "-"}
                       </td>
+
                       <td className="py-4 pr-4">
                         <span
                           className={`rounded-full px-3 py-1 text-xs ${

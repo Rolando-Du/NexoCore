@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../services/api";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 
 const initialForm = {
   clientId: "",
@@ -104,36 +104,39 @@ const Operations = () => {
     return clients.filter((client) => client.isActive);
   }, [clients]);
 
-  const getOperations = async () => {
+  const getOperations = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
 
       const response = await api.get("/operations");
+
       setOperations(response.data.data);
     } catch (error) {
       setError(
-        error.response?.data?.message || "No se pudieron obtener las operaciones"
+        error.response?.data?.message ||
+          "No se pudieron obtener las operaciones"
       );
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const getClients = async () => {
+  const getClients = useCallback(async () => {
     try {
       const response = await api.get("/clients");
+
       setClients(response.data.data);
     } catch (error) {
       setError(
         error.response?.data?.message || "No se pudieron obtener los clientes"
       );
     }
-  };
+  }, []);
 
-  const loadInitialData = async () => {
+  const loadInitialData = useCallback(async () => {
     await Promise.all([getClients(), getOperations()]);
-  };
+  }, [getClients, getOperations]);
 
   const handleChange = (event) => {
     setForm({
@@ -143,10 +146,10 @@ const Operations = () => {
   };
 
   const handleStatusSelect = (operationId, value) => {
-    setStatusChanges({
-      ...statusChanges,
+    setStatusChanges((currentStatusChanges) => ({
+      ...currentStatusChanges,
       [operationId]: value,
-    });
+    }));
   };
 
   const handleSubmit = async (event) => {
@@ -193,6 +196,12 @@ const Operations = () => {
       });
 
       setSuccessMessage("Estado actualizado correctamente");
+
+      setStatusChanges((currentStatusChanges) => ({
+        ...currentStatusChanges,
+        [operation.id]: "",
+      }));
+
       await getOperations();
     } catch (error) {
       setError(
@@ -205,8 +214,14 @@ const Operations = () => {
   };
 
   useEffect(() => {
-    loadInitialData();
-  }, []);
+    const timerId = window.setTimeout(() => {
+      loadInitialData();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [loadInitialData]);
 
   return (
     <div>
@@ -219,6 +234,7 @@ const Operations = () => {
         </div>
 
         <button
+          type="button"
           onClick={getOperations}
           className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-cyan-400"
         >
@@ -404,6 +420,7 @@ const Operations = () => {
                             {operation.client?.name || "Sin cliente"}
                           </span>
                         </p>
+
                         <p>
                           Programada:{" "}
                           <span className="text-slate-200">
@@ -412,6 +429,7 @@ const Operations = () => {
                               : "-"}
                           </span>
                         </p>
+
                         <p>
                           Inicio:{" "}
                           <span className="text-slate-200">
@@ -420,6 +438,7 @@ const Operations = () => {
                               : "-"}
                           </span>
                         </p>
+
                         <p>
                           Finalización:{" "}
                           <span className="text-slate-200">
@@ -452,6 +471,7 @@ const Operations = () => {
                       </select>
 
                       <button
+                        type="button"
                         onClick={() => handleUpdateStatus(operation)}
                         disabled={updatingStatusId === operation.id}
                         className="mt-3 w-full rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-slate-100 hover:bg-cyan-500 hover:text-slate-950 disabled:opacity-60"

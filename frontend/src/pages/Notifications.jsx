@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../services/api";
 
 const statusOptions = [
@@ -33,11 +33,12 @@ const Notifications = () => {
   const [successMessage, setSuccessMessage] = useState("");
 
   const unreadCount = useMemo(() => {
-    return notifications.filter((notification) => notification.status === "UNREAD")
-      .length;
+    return notifications.filter(
+      (notification) => notification.status === "UNREAD"
+    ).length;
   }, [notifications]);
 
-  const getNotifications = async () => {
+  const getNotifications = useCallback(async () => {
     try {
       setLoading(true);
       setError("");
@@ -62,7 +63,7 @@ const Notifications = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [filterStatus]);
 
   const handleMarkAsRead = async (notificationId) => {
     try {
@@ -108,8 +109,14 @@ const Notifications = () => {
   };
 
   useEffect(() => {
-    getNotifications();
-  }, [filterStatus]);
+    const timerId = window.setTimeout(() => {
+      getNotifications();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [getNotifications]);
 
   return (
     <div>
@@ -117,13 +124,14 @@ const Notifications = () => {
         <div>
           <h2 className="text-3xl font-bold">Notificaciones</h2>
           <p className="mt-2 text-slate-400">
-            Consultá eventos importantes sobre operaciones, asignaciones y cambios
-            de estado.
+            Consultá eventos importantes sobre operaciones, asignaciones y
+            cambios de estado.
           </p>
         </div>
 
         <div className="flex flex-col gap-3 sm:flex-row">
           <button
+            type="button"
             onClick={getNotifications}
             className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-cyan-400"
           >
@@ -131,6 +139,7 @@ const Notifications = () => {
           </button>
 
           <button
+            type="button"
             onClick={handleMarkAllAsRead}
             disabled={markingAll || unreadCount === 0}
             className="rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-cyan-400 disabled:opacity-60"
@@ -265,6 +274,7 @@ const Notifications = () => {
                     <div className="min-w-48">
                       {notification.status === "UNREAD" ? (
                         <button
+                          type="button"
                           onClick={() => handleMarkAsRead(notification.id)}
                           disabled={markingId === notification.id}
                           className="w-full rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-slate-100 hover:bg-cyan-500 hover:text-slate-950 disabled:opacity-60"

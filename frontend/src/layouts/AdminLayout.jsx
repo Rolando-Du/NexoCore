@@ -1,5 +1,5 @@
 import { NavLink, Outlet } from "react-router";
-import { useAuth } from "../context/AuthContext";
+import { useAuth } from "../hooks/useAuth";
 
 const AdminLayout = () => {
   const { userSession, logout } = useAuth();
@@ -62,6 +62,7 @@ const AdminLayout = () => {
           >
             Evidencias
           </NavLink>
+
           <NavLink
             to="/audit"
             className={({ isActive }) =>
@@ -106,6 +107,7 @@ const AdminLayout = () => {
             </div>
 
             <button
+              type="button"
               onClick={logout}
               className="rounded-lg bg-red-500/10 px-4 py-2 text-sm text-red-300 hover:bg-red-500/20"
             >

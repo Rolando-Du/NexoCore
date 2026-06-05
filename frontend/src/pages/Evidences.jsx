@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../services/api";
 
 const API_BASE_URL = "http://localhost:4000";
@@ -39,7 +39,7 @@ const Evidences = () => {
     return operations.find((operation) => operation.id === selectedOperationId);
   }, [operations, selectedOperationId]);
 
-  const getOperations = async () => {
+  const getOperations = useCallback(async () => {
     try {
       setLoadingOperations(true);
       setError("");
@@ -49,9 +49,10 @@ const Evidences = () => {
 
       setOperations(data);
 
-      if (data.length > 0 && !selectedOperationId) {
-        setSelectedOperationId(data[0].id);
-      }
+      setSelectedOperationId((currentOperationId) => {
+        if (currentOperationId) return currentOperationId;
+        return data.length > 0 ? data[0].id : "";
+      });
     } catch (error) {
       setError(
         error.response?.data?.message ||
@@ -60,9 +61,9 @@ const Evidences = () => {
     } finally {
       setLoadingOperations(false);
     }
-  };
+  }, []);
 
-  const getAttachments = async (operationId) => {
+  const getAttachments = useCallback(async (operationId) => {
     if (!operationId) return;
 
     try {
@@ -80,7 +81,7 @@ const Evidences = () => {
     } finally {
       setLoadingAttachments(false);
     }
-  };
+  }, []);
 
   const handleFileChange = (event) => {
     setFile(event.target.files[0] || null);
@@ -108,10 +109,7 @@ const Evidences = () => {
       formData.append("file", file);
       formData.append("description", description);
 
-      await api.post(
-        `/attachments/operations/${selectedOperationId}`,
-        formData
-      );
+      await api.post(`/attachments/operations/${selectedOperationId}`, formData);
 
       setFile(null);
       setDescription("");
@@ -129,14 +127,26 @@ const Evidences = () => {
   };
 
   useEffect(() => {
-    getOperations();
-  }, []);
+    const timerId = window.setTimeout(() => {
+      getOperations();
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [getOperations]);
 
   useEffect(() => {
-    if (selectedOperationId) {
+    if (!selectedOperationId) return;
+
+    const timerId = window.setTimeout(() => {
       getAttachments(selectedOperationId);
-    }
-  }, [selectedOperationId]);
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timerId);
+    };
+  }, [selectedOperationId, getAttachments]);
 
   return (
     <div>
@@ -149,6 +159,7 @@ const Evidences = () => {
         </div>
 
         <button
+          type="button"
           onClick={() => getAttachments(selectedOperationId)}
           disabled={!selectedOperationId}
           className="rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-cyan-400 disabled:opacity-60"
@@ -321,12 +332,14 @@ const Evidences = () => {
                         {attachment.uploadedBy?.name || "-"}
                       </span>
                     </p>
+
                     <p>
                       Fecha:{" "}
                       <span className="text-slate-300">
                         {new Date(attachment.createdAt).toLocaleString()}
                       </span>
                     </p>
+
                     <p>
                       MIME:{" "}
                       <span className="text-slate-300">
