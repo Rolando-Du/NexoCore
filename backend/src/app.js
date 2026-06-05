@@ -4,6 +4,8 @@ import helmet from "helmet";
 import morgan from "morgan";
 
 import { setupSwagger } from "./docs/swagger.js";
+import authRoutes from "./modules/auth/auth.routes.js";
+
 import {
   errorMiddleware,
   notFoundMiddleware,
@@ -17,6 +19,8 @@ app.use(express.json());
 app.use(morgan("dev"));
 
 setupSwagger(app);
+
+app.use("/api/auth", authRoutes);
 
 app.get("/health", (req, res) => {
   res.json({
@@ -32,6 +36,7 @@ app.get("/", (req, res) => {
     message: "Bienvenido a NexoCore API",
     docs: "/api/docs",
     health: "/health",
+    auth: "/api/auth/register-tenant",
   });
 });
 
