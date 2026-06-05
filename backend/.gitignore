@@ -16,10 +16,19 @@ node_modules
 
 # Build outputs
 dist
-dist-ssr
 build
 coverage
 *.local
+
+# Uploads / evidences
+uploads/**
+!uploads/
+!uploads/.gitkeep
+!uploads/evidences/
+!uploads/evidences/.gitkeep
+
+# Prisma optional generated files
+generated
 
 # Editor / OS
 .vscode/*
