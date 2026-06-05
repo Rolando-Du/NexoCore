@@ -1,5 +1,15 @@
+import { ZodError } from "zod";
+
 import { notificationQuerySchema } from "./notification.schema.js";
 import * as notificationService from "./notification.service.js";
+
+const handleZodError = (error, res) => {
+  return res.status(400).json({
+    success: false,
+    message: "Filtros inválidos",
+    errors: error.issues,
+  });
+};
 
 export const getMyNotifications = async (req, res, next) => {
   try {
@@ -11,21 +21,17 @@ export const getMyNotifications = async (req, res, next) => {
       filters,
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: "Notificaciones obtenidas correctamente",
       data: result,
     });
   } catch (error) {
-    if (error.name === "ZodError") {
-      return res.status(400).json({
-        success: false,
-        message: "Filtros inválidos",
-        errors: error.issues,
-      });
+    if (error instanceof ZodError) {
+      return handleZodError(error, res);
     }
 
-    next(error);
+    return next(error);
   }
 };
 
@@ -37,13 +43,13 @@ export const markAsRead = async (req, res, next) => {
       notificationId: req.params.id,
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: "Notificación marcada como leída",
       data: notification,
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };
 
@@ -54,12 +60,12 @@ export const markAllAsRead = async (req, res, next) => {
       userId: req.context.user.id,
     });
 
-    res.json({
+    return res.json({
       success: true,
       message: "Notificaciones marcadas como leídas",
       data: result,
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };
