@@ -14,6 +14,7 @@ router.use(authMiddleware);
  * /api/attachments/operations/{operationId}:
  *   post:
  *     summary: Subir evidencia a una operación
+ *     description: Permite subir una imagen, PDF, Word o Excel como evidencia asociada a una operación.
  *     tags:
  *       - Attachments
  *     security:
@@ -22,7 +23,7 @@ router.use(authMiddleware);
  *       - in: path
  *         name: operationId
  *         required: true
- *         description: ID de la operación
+ *         description: ID de la operación a la que se asociará la evidencia.
  *         schema:
  *           type: string
  *         example: cmq0t1glp0007fo9w0je06l0j
@@ -38,12 +39,22 @@ router.use(authMiddleware);
  *               file:
  *                 type: string
  *                 format: binary
+ *                 description: Archivo permitido. Imágenes, PDF, Word o Excel.
  *               description:
  *                 type: string
+ *                 description: Descripción opcional de la evidencia.
  *                 example: Foto del tablero antes de iniciar el trabajo.
  *     responses:
  *       201:
- *         description: Evidencia subida correctamente
+ *         description: Evidencia subida correctamente.
+ *       400:
+ *         description: Archivo requerido, archivo no permitido o datos inválidos.
+ *       401:
+ *         description: Token requerido, inválido o expirado.
+ *       403:
+ *         description: No tiene permisos para subir evidencias.
+ *       404:
+ *         description: Operación no encontrada.
  */
 router.post(
   "/operations/:operationId",
@@ -57,6 +68,7 @@ router.post(
  * /api/attachments/operations/{operationId}:
  *   get:
  *     summary: Listar evidencias de una operación
+ *     description: Obtiene todas las evidencias asociadas a una operación del tenant actual.
  *     tags:
  *       - Attachments
  *     security:
@@ -65,13 +77,19 @@ router.post(
  *       - in: path
  *         name: operationId
  *         required: true
- *         description: ID de la operación
+ *         description: ID de la operación.
  *         schema:
  *           type: string
  *         example: cmq0t1glp0007fo9w0je06l0j
  *     responses:
  *       200:
- *         description: Evidencias obtenidas correctamente
+ *         description: Evidencias obtenidas correctamente.
+ *       401:
+ *         description: Token requerido, inválido o expirado.
+ *       403:
+ *         description: No tiene permisos para consultar evidencias.
+ *       404:
+ *         description: Operación no encontrada.
  */
 router.get(
   "/operations/:operationId",
@@ -83,7 +101,8 @@ router.get(
  * @swagger
  * /api/attachments/{id}:
  *   get:
- *     summary: Obtener archivo por ID
+ *     summary: Obtener evidencia por ID
+ *     description: Obtiene el detalle de una evidencia específica perteneciente al tenant actual.
  *     tags:
  *       - Attachments
  *     security:
@@ -92,12 +111,19 @@ router.get(
  *       - in: path
  *         name: id
  *         required: true
- *         description: ID del archivo
+ *         description: ID de la evidencia.
  *         schema:
  *           type: string
+ *         example: cmq12sb9j00014c9wromxb76k
  *     responses:
  *       200:
- *         description: Archivo obtenido correctamente
+ *         description: Archivo obtenido correctamente.
+ *       401:
+ *         description: Token requerido, inválido o expirado.
+ *       403:
+ *         description: No tiene permisos para consultar la evidencia.
+ *       404:
+ *         description: Archivo no encontrado.
  */
 router.get(
   "/:id",
