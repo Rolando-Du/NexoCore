@@ -13,13 +13,26 @@ router.use(authMiddleware);
  * /api/clients:
  *   get:
  *     summary: Listar clientes
+ *     description: Obtiene los clientes del tenant actual. Permite incluir o excluir clientes inactivos.
  *     tags:
  *       - Clients
  *     security:
  *       - bearerAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: includeInactive
+ *         required: false
+ *         description: Si es false, devuelve solo clientes activos. Si se omite, devuelve activos e inactivos.
+ *         schema:
+ *           type: boolean
+ *         example: false
  *     responses:
  *       200:
- *         description: Clientes obtenidos correctamente
+ *         description: Clientes obtenidos correctamente.
+ *       401:
+ *         description: Token requerido, inválido o expirado.
+ *       403:
+ *         description: No tiene permisos para consultar clientes.
  */
 router.get(
   "/",
@@ -32,6 +45,7 @@ router.get(
  * /api/clients:
  *   post:
  *     summary: Crear cliente
+ *     description: Crea un cliente dentro del tenant actual. Puede incluir ubicaciones y contactos iniciales.
  *     tags:
  *       - Clients
  *     security:
@@ -64,6 +78,8 @@ router.get(
  *                 type: array
  *                 items:
  *                   type: object
+ *                   required:
+ *                     - name
  *                   properties:
  *                     name:
  *                       type: string
@@ -80,10 +96,18 @@ router.get(
  *                     country:
  *                       type: string
  *                       example: Argentina
+ *                     lat:
+ *                       type: number
+ *                       example: -34.6037
+ *                     lng:
+ *                       type: number
+ *                       example: -58.3816
  *               contacts:
  *                 type: array
  *                 items:
  *                   type: object
+ *                   required:
+ *                     - name
  *                   properties:
  *                     name:
  *                       type: string
@@ -99,7 +123,15 @@ router.get(
  *                       example: Responsable operativo
  *     responses:
  *       201:
- *         description: Cliente creado correctamente
+ *         description: Cliente creado correctamente.
+ *       400:
+ *         description: Datos inválidos.
+ *       401:
+ *         description: Token requerido, inválido o expirado.
+ *       403:
+ *         description: No tiene permisos para crear clientes.
+ *       409:
+ *         description: Ya existe un cliente con ese CUIT / Tax ID o email.
  */
 router.post(
   "/",
@@ -112,6 +144,7 @@ router.post(
  * /api/clients/{id}:
  *   get:
  *     summary: Obtener cliente por ID
+ *     description: Obtiene el detalle de un cliente específico del tenant actual.
  *     tags:
  *       - Clients
  *     security:
@@ -120,15 +153,19 @@ router.post(
  *       - in: path
  *         name: id
  *         required: true
- *         description: ID del cliente
+ *         description: ID del cliente.
  *         schema:
  *           type: string
- *         example: cmq0ducze0001zg9wkloe1xqg
+ *         example: cmq0fnnca0000zc9wk27knn2x
  *     responses:
  *       200:
- *         description: Cliente obtenido correctamente
+ *         description: Cliente obtenido correctamente.
+ *       401:
+ *         description: Token requerido, inválido o expirado.
+ *       403:
+ *         description: No tiene permisos para consultar el cliente.
  *       404:
- *         description: Cliente no encontrado
+ *         description: Cliente no encontrado.
  */
 router.get(
   "/:id",
@@ -141,6 +178,7 @@ router.get(
  * /api/clients/{id}:
  *   put:
  *     summary: Actualizar cliente
+ *     description: Actualiza los datos principales de un cliente del tenant actual.
  *     tags:
  *       - Clients
  *     security:
@@ -149,10 +187,10 @@ router.get(
  *       - in: path
  *         name: id
  *         required: true
- *         description: ID del cliente
+ *         description: ID del cliente.
  *         schema:
  *           type: string
- *         example: cmq0ducze0001zg9wkloe1xqg
+ *         example: cmq0fnnca0000zc9wk27knn2x
  *     requestBody:
  *       required: true
  *       content:
@@ -177,9 +215,17 @@ router.get(
  *                 example: "+54 11 6666-6666"
  *     responses:
  *       200:
- *         description: Cliente actualizado correctamente
+ *         description: Cliente actualizado correctamente.
+ *       400:
+ *         description: Datos inválidos.
+ *       401:
+ *         description: Token requerido, inválido o expirado.
+ *       403:
+ *         description: No tiene permisos para actualizar clientes.
  *       404:
- *         description: Cliente no encontrado
+ *         description: Cliente no encontrado.
+ *       409:
+ *         description: Ya existe un cliente con ese CUIT / Tax ID o email.
  */
 router.put(
   "/:id",
@@ -192,6 +238,7 @@ router.put(
  * /api/clients/{id}/disable:
  *   patch:
  *     summary: Deshabilitar cliente
+ *     description: Realiza una baja lógica del cliente. No borra el registro físicamente, solo lo marca como inactivo.
  *     tags:
  *       - Clients
  *     security:
@@ -200,15 +247,21 @@ router.put(
  *       - in: path
  *         name: id
  *         required: true
- *         description: ID del cliente
+ *         description: ID del cliente.
  *         schema:
  *           type: string
- *         example: cmq0ducze0001zg9wkloe1xqg
+ *         example: cmq0fnnca0000zc9wk27knn2x
  *     responses:
  *       200:
- *         description: Cliente deshabilitado correctamente
+ *         description: Cliente deshabilitado correctamente.
+ *       401:
+ *         description: Token requerido, inválido o expirado.
+ *       403:
+ *         description: No tiene permisos para deshabilitar clientes.
  *       404:
- *         description: Cliente no encontrado
+ *         description: Cliente no encontrado.
+ *       409:
+ *         description: El cliente ya se encuentra inactivo.
  */
 router.patch(
   "/:id/disable",
