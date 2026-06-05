@@ -19,6 +19,32 @@ enum AuditAction {
   LOGIN
   LOGOUT
   READ
+  ASSIGN
+  STATUS_CHANGE
+}
+
+enum OperationType {
+  TASK
+  WORK_ORDER
+  INCIDENT
+  INSPECTION
+  SERVICE_REQUEST
+}
+
+enum OperationStatus {
+  DRAFT
+  PENDING
+  IN_PROGRESS
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
 }
 
 model Tenant {
@@ -28,10 +54,11 @@ model Tenant {
   taxId     String?
   isActive  Boolean  @default(true)
 
-  users     TenantUser[]
-  roles     Role[]
-  clients   Client[]
-  auditLogs AuditLog[]
+  users      TenantUser[]
+  roles      Role[]
+  clients    Client[]
+  operations Operation[]
+  auditLogs  AuditLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -148,9 +175,10 @@ model Client {
   phone     String?
   isActive  Boolean @default(true)
 
-  tenant    Tenant @relation(fields: [tenantId], references: [id])
-  locations ClientLocation[]
-  contacts  ClientContact[]
+  tenant     Tenant @relation(fields: [tenantId], references: [id])
+  locations  ClientLocation[]
+  contacts   ClientContact[]
+  operations Operation[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -199,4 +227,75 @@ model ClientContact {
 
   @@index([tenantId])
   @@index([clientId])
+}
+
+model Operation {
+  id       String @id @default(cuid())
+  tenantId String
+  clientId String?
+
+  type        OperationType
+  title       String
+  description String?
+  status      OperationStatus @default(PENDING)
+  priority    Priority        @default(MEDIUM)
+
+  scheduledAt DateTime?
+  startedAt   DateTime?
+  completedAt DateTime?
+
+  createdById  String
+  assignedToId String?
+
+  tenant Tenant  @relation(fields: [tenantId], references: [id])
+  client Client? @relation(fields: [clientId], references: [id])
+
+  assignments   OperationAssignment[]
+  statusHistory OperationStatusHistory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([clientId])
+  @@index([status])
+  @@index([type])
+  @@index([priority])
+  @@index([createdById])
+  @@index([assignedToId])
+}
+
+model OperationAssignment {
+  id          String @id @default(cuid())
+  tenantId    String
+  operationId String
+  userId      String
+
+  operation Operation @relation(fields: [operationId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([operationId, userId])
+  @@index([tenantId])
+  @@index([operationId])
+  @@index([userId])
+}
+
+model OperationStatusHistory {
+  id          String @id @default(cuid())
+  tenantId    String
+  operationId String
+
+  fromStatus  OperationStatus?
+  toStatus    OperationStatus
+  changedById String
+  note        String?
+
+  operation Operation @relation(fields: [operationId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@index([tenantId])
+  @@index([operationId])
+  @@index([changedById])
 }

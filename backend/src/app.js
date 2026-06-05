@@ -6,6 +6,7 @@ import morgan from "morgan";
 import { setupSwagger } from "./docs/swagger.js";
 import authRoutes from "./modules/auth/auth.routes.js";
 import clientRoutes from "./modules/clients/client.routes.js";
+import operationRoutes from "./modules/operations/operation.routes.js";
 
 import {
   errorMiddleware,
@@ -23,6 +24,7 @@ setupSwagger(app);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/clients", clientRoutes);
+app.use("/api/operations", operationRoutes);
 
 app.get("/health", (req, res) => {
   res.json({
