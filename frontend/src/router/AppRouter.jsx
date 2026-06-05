@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router";
 
 import Login from "../pages/Login";
 import Dashboard from "../pages/Dashboard";
@@ -27,10 +27,12 @@ const AppRouter = () => {
           <Route index element={<Dashboard />} />
           <Route path="clients" element={<Clients />} />
           <Route path="operations" element={<Operations />} />
-          <Route path="notifications" element={<Notifications />} />
           <Route path="evidences" element={<Evidences />} />
           <Route path="audit" element={<Audit />} />
+          <Route path="notifications" element={<Notifications />} />
         </Route>
+
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </BrowserRouter>
   );
