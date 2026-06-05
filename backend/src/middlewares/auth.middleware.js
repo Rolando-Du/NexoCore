@@ -1,4 +1,6 @@
 import jwt from "jsonwebtoken";
+
+import { env } from "../config/env.js";
 import { prisma } from "../config/prisma.js";
 
 export const authMiddleware = async (req, res, next) => {
@@ -12,9 +14,23 @@ export const authMiddleware = async (req, res, next) => {
       });
     }
 
-    const token = authHeader.split(" ")[1];
+    const token = authHeader.replace("Bearer ", "").trim();
 
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        message: "Token requerido",
+      });
+    }
+
+    const payload = jwt.verify(token, env.jwtSecret);
+
+    if (!payload?.sub || !payload?.tenantId) {
+      return res.status(401).json({
+        success: false,
+        message: "Token inválido",
+      });
+    }
 
     const membership = await prisma.tenantUser.findFirst({
       where: {
@@ -22,13 +38,32 @@ export const authMiddleware = async (req, res, next) => {
         tenantId: payload.tenantId,
       },
       include: {
-        user: true,
-        tenant: true,
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            status: true,
+          },
+        },
+        tenant: {
+          select: {
+            id: true,
+            name: true,
+            isActive: true,
+          },
+        },
         role: {
-          include: {
+          select: {
+            id: true,
+            name: true,
             permissions: {
-              include: {
-                permission: true,
+              select: {
+                permission: {
+                  select: {
+                    key: true,
+                  },
+                },
               },
             },
           },
@@ -79,11 +114,18 @@ export const authMiddleware = async (req, res, next) => {
       permissions,
     };
 
-    next();
+    return next();
   } catch (error) {
+    if (error instanceof jwt.TokenExpiredError) {
+      return res.status(401).json({
+        success: false,
+        message: "Token expirado",
+      });
+    }
+
     return res.status(401).json({
       success: false,
-      message: "Token inválido o expirado",
+      message: "Token inválido",
     });
   }
 };
