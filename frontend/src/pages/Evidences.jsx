@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../services/api";
 
-const API_BASE_URL = "http://localhost:4000";
+const API_BASE_URL = (
+  import.meta.env.VITE_API_URL || "http://localhost:4000/api"
+).replace(/\/api\/?$/, "");
 
 const typeClassName = {
   IMAGE: "bg-cyan-500/10 text-cyan-300",
@@ -84,11 +86,21 @@ const Evidences = () => {
   }, []);
 
   const handleFileChange = (event) => {
-    setFile(event.target.files[0] || null);
+    const selectedFile = event.target.files?.[0] || null;
+
+    setFile(selectedFile);
+    setError("");
+    setSuccessMessage("");
+
+    if (!selectedFile) {
+      setError("Seleccioná un archivo para subir");
+    }
   };
 
   const handleUpload = async (event) => {
     event.preventDefault();
+
+    const formElement = event.currentTarget;
 
     if (!selectedOperationId) {
       setError("Seleccioná una operación");
@@ -113,7 +125,7 @@ const Evidences = () => {
 
       setFile(null);
       setDescription("");
-      event.currentTarget.reset();
+      formElement.reset();
 
       setSuccessMessage("Evidencia subida correctamente");
       await getAttachments(selectedOperationId);
@@ -258,9 +270,16 @@ const Evidences = () => {
                 <label className="text-sm text-slate-300">Archivo *</label>
                 <input
                   type="file"
+                  accept=".jpg,.jpeg,.png,.webp,.pdf,.doc,.docx,.xls,.xlsx,image/jpeg,image/png,image/webp,application/pdf"
                   onChange={handleFileChange}
                   className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-3 text-sm text-slate-100 file:mr-3 file:rounded-lg file:border-0 file:bg-cyan-500 file:px-3 file:py-2 file:text-sm file:font-semibold file:text-slate-950 hover:file:bg-cyan-400"
                 />
+
+                {file && (
+                  <p className="mt-2 wrap-break-word text-xs text-cyan-300">
+                    Archivo seleccionado: {file.name}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -276,10 +295,14 @@ const Evidences = () => {
             </div>
 
             <button
-              disabled={uploading || !selectedOperationId}
-              className="mt-6 w-full rounded-lg bg-cyan-500 px-4 py-3 font-semibold text-slate-950 hover:bg-cyan-400 disabled:opacity-60"
+              disabled={uploading || !selectedOperationId || !file}
+              className="mt-6 w-full rounded-lg bg-cyan-500 px-4 py-3 font-semibold text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
             >
-              {uploading ? "Subiendo..." : "Subir evidencia"}
+              {uploading
+                ? "Subiendo..."
+                : !file
+                  ? "Seleccioná un archivo"
+                  : "Subir evidencia"}
             </button>
           </form>
         </aside>
