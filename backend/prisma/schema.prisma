@@ -60,6 +60,12 @@ enum NotificationChannel {
   WHATSAPP
 }
 
+enum AttachmentType {
+  IMAGE
+  DOCUMENT
+  OTHER
+}
+
 model Tenant {
   id        String   @id @default(cuid())
   name      String
@@ -72,6 +78,7 @@ model Tenant {
   clients       Client[]
   operations    Operation[]
   notifications Notification[]
+  attachments   Attachment[]
   auditLogs     AuditLog[]
 
   createdAt DateTime @default(now())
@@ -85,9 +92,10 @@ model User {
   password String
   status   UserStatus @default(ACTIVE)
 
-  memberships   TenantUser[]
-  auditLogs     AuditLog[]
-  notifications Notification[]
+  memberships         TenantUser[]
+  auditLogs           AuditLog[]
+  notifications       Notification[]
+  uploadedAttachments Attachment[] @relation("UploadedAttachments")
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -267,6 +275,7 @@ model Operation {
 
   assignments   OperationAssignment[]
   statusHistory OperationStatusHistory[]
+  attachments   Attachment[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -339,5 +348,35 @@ model Notification {
   @@index([tenantId])
   @@index([userId])
   @@index([status])
+  @@index([type])
+}
+
+model Attachment {
+  id       String @id @default(cuid())
+  tenantId String
+
+  operationId  String?
+  uploadedById String
+
+  type         AttachmentType @default(OTHER)
+  originalName String
+  fileName     String
+  mimeType     String
+  size         Int
+  path         String
+  url          String?
+  description  String?
+  metadata     Json?
+
+  tenant     Tenant     @relation(fields: [tenantId], references: [id])
+  operation  Operation? @relation(fields: [operationId], references: [id])
+  uploadedBy User       @relation("UploadedAttachments", fields: [uploadedById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([tenantId])
+  @@index([operationId])
+  @@index([uploadedById])
   @@index([type])
 }

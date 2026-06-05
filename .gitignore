@@ -5,3 +5,10 @@ build
 coverage
 .DS_Store
 .vscode
+
+# Uploads / evidences
+backend/uploads/**
+!backend/uploads/
+!backend/uploads/.gitkeep
+!backend/uploads/evidences/
+!backend/uploads/evidences/.gitkeep
