@@ -50,4 +50,43 @@ const router = Router();
  */
 router.post("/register-tenant", authController.registerTenant);
 
+/**
+ * @swagger
+ * /api/auth/login:
+ *   post:
+ *     summary: Iniciar sesión
+ *     tags:
+ *       - Auth
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *               - tenantId
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 example: admin@nexocore.com
+ *               password:
+ *                 type: string
+ *                 example: Admin1234
+ *               tenantId:
+ *                 type: string
+ *                 example: cmq09d8i700000s9w9st4nlb4
+ *     responses:
+ *       200:
+ *         description: Login correcto
+ *       400:
+ *         description: Datos inválidos
+ *       401:
+ *         description: Credenciales inválidas
+ *       403:
+ *         description: Usuario sin acceso a la empresa
+ */
+router.post("/login", authController.login);
+
 export default router;

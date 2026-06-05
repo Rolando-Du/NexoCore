@@ -1,4 +1,6 @@
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+
 import { prisma } from "../../config/prisma.js";
 
 const INITIAL_PERMISSIONS = [
@@ -152,5 +154,123 @@ export const registerTenant = async ({
       name: result.adminRole.name,
     },
     permissions: result.permissions.map((permission) => permission.key),
+  };
+};
+
+export const login = async ({
+  email,
+  password,
+  tenantId,
+  ip,
+  userAgent,
+}) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      email,
+    },
+  });
+
+  if (!user) {
+    const error = new Error("Credenciales inválidas");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  if (user.status !== "ACTIVE") {
+    const error = new Error("El usuario no está activo");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const isPasswordValid = await bcrypt.compare(password, user.password);
+
+  if (!isPasswordValid) {
+    const error = new Error("Credenciales inválidas");
+    error.statusCode = 401;
+    throw error;
+  }
+
+  const membership = await prisma.tenantUser.findFirst({
+    where: {
+      userId: user.id,
+      tenantId,
+    },
+    include: {
+      tenant: true,
+      role: {
+        include: {
+          permissions: {
+            include: {
+              permission: true,
+            },
+          },
+        },
+      },
+    },
+  });
+
+  if (!membership) {
+    const error = new Error("El usuario no pertenece a esta empresa");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (!membership.tenant.isActive) {
+    const error = new Error("La empresa se encuentra inactiva");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  const permissions = membership.role.permissions.map(
+    (rolePermission) => rolePermission.permission.key
+  );
+
+  const token = jwt.sign(
+    {
+      sub: user.id,
+      tenantId: membership.tenant.id,
+      roleId: membership.role.id,
+      email: user.email,
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: "1h",
+    }
+  );
+
+  await prisma.auditLog.create({
+    data: {
+      tenantId: membership.tenant.id,
+      userId: user.id,
+      action: "LOGIN",
+      module: "auth",
+      entity: "User",
+      entityId: user.id,
+      metadata: {
+        event: "LOGIN",
+        email: user.email,
+      },
+      ip,
+      userAgent,
+    },
+  });
+
+  return {
+    token,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      status: user.status,
+    },
+    tenant: {
+      id: membership.tenant.id,
+      name: membership.tenant.name,
+    },
+    role: {
+      id: membership.role.id,
+      name: membership.role.name,
+    },
+    permissions,
   };
 };
