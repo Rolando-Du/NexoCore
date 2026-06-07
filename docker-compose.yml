@@ -2,7 +2,7 @@ services:
   postgres:
     image: postgres:16
     container_name: nexocore_postgres
-    restart: always
+    restart: unless-stopped
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
@@ -11,6 +11,11 @@ services:
       - "5433:5432"
     volumes:
       - nexocore_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d nexocore_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   nexocore_postgres_data:
