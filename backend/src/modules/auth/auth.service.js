@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
+import { env } from "../../config/env.js";
 import { prisma } from "../../config/prisma.js";
 
 const INITIAL_PERMISSIONS = [
@@ -26,6 +27,57 @@ const INITIAL_PERMISSIONS = [
   "audit:read",
 ];
 
+const normalizeRequiredText = (value, fieldName) => {
+  const cleanValue = String(value || "").trim();
+
+  if (!cleanValue) {
+    const error = new Error(`${fieldName} es obligatorio`);
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return cleanValue;
+};
+
+const normalizeOptionalText = (value) => {
+  if (!value) return null;
+
+  const cleanValue = String(value).trim();
+
+  return cleanValue || null;
+};
+
+const normalizeEmail = (email) => {
+  return normalizeRequiredText(email, "El email").toLowerCase();
+};
+
+const getMembershipPermissions = (membership) => {
+  return membership.role.permissions.map(
+    (rolePermission) => rolePermission.permission.key
+  );
+};
+
+const buildAuthResponse = ({ token, user, tenant, role, permissions }) => {
+  return {
+    token,
+    user: {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      status: user.status,
+    },
+    tenant: {
+      id: tenant.id,
+      name: tenant.name,
+    },
+    role: {
+      id: role.id,
+      name: role.name,
+    },
+    permissions,
+  };
+};
+
 export const registerTenant = async ({
   companyName,
   legalName,
@@ -36,9 +88,24 @@ export const registerTenant = async ({
   ip,
   userAgent,
 }) => {
+  const cleanCompanyName = normalizeRequiredText(
+    companyName,
+    "El nombre de la empresa"
+  );
+  const cleanLegalName = normalizeOptionalText(legalName);
+  const cleanTaxId = normalizeOptionalText(taxId);
+  const cleanAdminName = normalizeRequiredText(
+    adminName,
+    "El nombre del administrador"
+  );
+  const cleanAdminEmail = normalizeEmail(adminEmail);
+
   const existingUser = await prisma.user.findUnique({
     where: {
-      email: adminEmail,
+      email: cleanAdminEmail,
+    },
+    select: {
+      id: true,
     },
   });
 
@@ -48,21 +115,38 @@ export const registerTenant = async ({
     throw error;
   }
 
+  if (cleanTaxId) {
+    const existingTenant = await prisma.tenant.findFirst({
+      where: {
+        taxId: cleanTaxId,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (existingTenant) {
+      const error = new Error("Ya existe una empresa registrada con ese CUIT / Tax ID");
+      error.statusCode = 409;
+      throw error;
+    }
+  }
+
   const passwordHash = await bcrypt.hash(adminPassword, 10);
 
   const result = await prisma.$transaction(async (tx) => {
     const tenant = await tx.tenant.create({
       data: {
-        name: companyName,
-        legalName,
-        taxId,
+        name: cleanCompanyName,
+        legalName: cleanLegalName,
+        taxId: cleanTaxId,
       },
     });
 
     const adminUser = await tx.user.create({
       data: {
-        name: adminName,
-        email: adminEmail,
+        name: cleanAdminName,
+        email: cleanAdminEmail,
         password: passwordHash,
         status: "ACTIVE",
       },
@@ -118,7 +202,9 @@ export const registerTenant = async ({
         entity: "Tenant",
         entityId: tenant.id,
         newValue: {
+          tenantId: tenant.id,
           tenantName: tenant.name,
+          adminUserId: adminUser.id,
           adminEmail: adminUser.email,
         },
         metadata: {
@@ -157,16 +243,20 @@ export const registerTenant = async ({
   };
 };
 
-export const login = async ({
-  email,
-  password,
-  tenantId,
-  ip,
-  userAgent,
-}) => {
+export const login = async ({ email, password, tenantId, ip, userAgent }) => {
+  const cleanEmail = normalizeEmail(email);
+  const cleanTenantId = normalizeRequiredText(tenantId, "El tenantId");
+
   const user = await prisma.user.findUnique({
     where: {
-      email,
+      email: cleanEmail,
+    },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      password: true,
+      status: true,
     },
   });
 
@@ -193,15 +283,27 @@ export const login = async ({
   const membership = await prisma.tenantUser.findFirst({
     where: {
       userId: user.id,
-      tenantId,
+      tenantId: cleanTenantId,
     },
     include: {
-      tenant: true,
+      tenant: {
+        select: {
+          id: true,
+          name: true,
+          isActive: true,
+        },
+      },
       role: {
-        include: {
+        select: {
+          id: true,
+          name: true,
           permissions: {
-            include: {
-              permission: true,
+            select: {
+              permission: {
+                select: {
+                  key: true,
+                },
+              },
             },
           },
         },
@@ -221,9 +323,7 @@ export const login = async ({
     throw error;
   }
 
-  const permissions = membership.role.permissions.map(
-    (rolePermission) => rolePermission.permission.key
-  );
+  const permissions = getMembershipPermissions(membership);
 
   const token = jwt.sign(
     {
@@ -232,7 +332,7 @@ export const login = async ({
       roleId: membership.role.id,
       email: user.email,
     },
-    process.env.JWT_SECRET,
+    env.jwtSecret,
     {
       expiresIn: "1h",
     }
@@ -255,22 +355,11 @@ export const login = async ({
     },
   });
 
-  return {
+  return buildAuthResponse({
     token,
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      status: user.status,
-    },
-    tenant: {
-      id: membership.tenant.id,
-      name: membership.tenant.name,
-    },
-    role: {
-      id: membership.role.id,
-      name: membership.role.name,
-    },
+    user,
+    tenant: membership.tenant,
+    role: membership.role,
     permissions,
-  };
+  });
 };
