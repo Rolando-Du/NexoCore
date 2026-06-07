@@ -1,4 +1,5 @@
 import { Router } from "express";
+
 import * as authController from "./auth.controller.js";
 import { authMiddleware } from "../../middlewares/auth.middleware.js";
 
@@ -9,6 +10,7 @@ const router = Router();
  * /api/auth/register-tenant:
  *   post:
  *     summary: Registrar empresa y usuario administrador
+ *     description: Crea un nuevo tenant, un usuario administrador inicial, un rol administrador y los permisos base del sistema.
  *     tags:
  *       - Auth
  *     requestBody:
@@ -37,17 +39,19 @@ const router = Router();
  *                 example: Rolando Admin
  *               adminEmail:
  *                 type: string
+ *                 format: email
  *                 example: admin@nexocore.com
  *               adminPassword:
  *                 type: string
- *                 example: Admin1234
+ *                 format: password
+ *                 example: ChangeMe1234
  *     responses:
  *       201:
- *         description: Empresa y usuario administrador creados correctamente
+ *         description: Empresa y usuario administrador creados correctamente.
  *       400:
- *         description: Datos inválidos
+ *         description: Datos inválidos.
  *       409:
- *         description: El email ya está registrado
+ *         description: Ya existe un usuario registrado con ese email o una empresa con ese CUIT / Tax ID.
  */
 router.post("/register-tenant", authController.registerTenant);
 
@@ -56,6 +60,7 @@ router.post("/register-tenant", authController.registerTenant);
  * /api/auth/login:
  *   post:
  *     summary: Iniciar sesión
+ *     description: Autentica un usuario dentro de un tenant específico y devuelve un JWT para acceder a rutas protegidas.
  *     tags:
  *       - Auth
  *     requestBody:
@@ -71,38 +76,44 @@ router.post("/register-tenant", authController.registerTenant);
  *             properties:
  *               email:
  *                 type: string
+ *                 format: email
  *                 example: admin@nexocore.com
  *               password:
  *                 type: string
- *                 example: Admin1234
+ *                 format: password
+ *                 example: ChangeMe1234
  *               tenantId:
  *                 type: string
  *                 example: cmq09d8i700000s9w9st4nlb4
  *     responses:
  *       200:
- *         description: Login correcto
+ *         description: Login correcto.
  *       400:
- *         description: Datos inválidos
+ *         description: Datos inválidos.
  *       401:
- *         description: Credenciales inválidas
+ *         description: Credenciales inválidas.
  *       403:
- *         description: Usuario sin acceso a la empresa
+ *         description: Usuario inactivo, empresa inactiva o usuario sin acceso a la empresa.
  */
 router.post("/login", authController.login);
+
 /**
  * @swagger
  * /api/auth/me:
  *   get:
  *     summary: Obtener usuario autenticado
+ *     description: Devuelve el contexto del usuario autenticado, incluyendo usuario, tenant, rol y permisos.
  *     tags:
  *       - Auth
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Usuario autenticado correctamente
+ *         description: Usuario autenticado correctamente.
  *       401:
- *         description: Token inválido o no enviado
+ *         description: Token requerido, inválido o expirado.
+ *       403:
+ *         description: Usuario sin acceso a la empresa, usuario inactivo o empresa inactiva.
  */
 router.get("/me", authMiddleware, authController.me);
 
