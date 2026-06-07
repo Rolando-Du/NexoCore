@@ -20,10 +20,21 @@ import {
 
 const app = express();
 
-const corsOrigins = env.corsOrigin
-  .split(",")
-  .map((origin) => origin.trim())
-  .filter(Boolean);
+app.disable("x-powered-by");
+app.set("trust proxy", 1);
+
+const localApiOrigin = `http://localhost:${env.port}`;
+
+const corsOrigins = [
+  ...env.corsOrigin
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+
+  ...(env.nodeEnv !== "production" ? [localApiOrigin] : []),
+];
+
+const allowedCorsOrigins = [...new Set(corsOrigins)];
 
 app.use(
   helmet({
@@ -36,7 +47,7 @@ app.use(
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || corsOrigins.includes(origin)) {
+      if (!origin || allowedCorsOrigins.includes(origin)) {
         callback(null, true);
         return;
       }
@@ -54,24 +65,26 @@ app.use(morgan(env.nodeEnv === "production" ? "combined" : "dev"));
 
 app.use(
   "/uploads",
-  express.static(path.resolve("uploads"), {
+  express.static(path.resolve(process.cwd(), "uploads"), {
     maxAge: env.nodeEnv === "production" ? "7d" : 0,
+    index: false,
   })
 );
 
 setupSwagger(app);
 
 app.get("/health", (req, res) => {
-  res.json({
+  return res.json({
     success: true,
     message: "NexoCore API funcionando correctamente",
     timestamp: new Date().toISOString(),
     environment: env.nodeEnv,
+    uptime: process.uptime(),
   });
 });
 
 app.get("/", (req, res) => {
-  res.json({
+  return res.json({
     success: true,
     message: "Bienvenido a NexoCore API",
     docs: "/api/docs",
