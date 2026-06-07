@@ -1,46 +1,93 @@
 import { prisma } from "../../config/prisma.js";
 
-export const getAuditLogs = async ({ tenantId, filters }) => {
-  const where = {
+const auditInclude = {
+  user: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      status: true,
+    },
+  },
+  tenant: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+};
+
+const normalizeOptionalText = (value) => {
+  if (!value) return undefined;
+
+  const cleanValue = String(value).trim();
+
+  return cleanValue || undefined;
+};
+
+const normalizePagination = (filters = {}) => {
+  const take = Number(filters.take || 50);
+  const skip = Number(filters.skip || 0);
+
+  return {
+    take: Number.isNaN(take) ? 50 : Math.min(Math.max(take, 1), 100),
+    skip: Number.isNaN(skip) ? 0 : Math.max(skip, 0),
+  };
+};
+
+const normalizeDate = (value) => {
+  if (!value) return undefined;
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    const error = new Error("Fecha inválida");
+    error.statusCode = 400;
+    throw error;
+  }
+
+  return date;
+};
+
+const buildAuditWhere = ({ tenantId, filters = {} }) => {
+  const dateFrom = normalizeDate(filters.dateFrom);
+  const dateTo = normalizeDate(filters.dateTo);
+
+  return {
     tenantId,
-    module: filters.module || undefined,
-    action: filters.action || undefined,
-    userId: filters.userId || undefined,
-    entity: filters.entity || undefined,
-    entityId: filters.entityId || undefined,
+    module: normalizeOptionalText(filters.module),
+    action: normalizeOptionalText(filters.action),
+    userId: normalizeOptionalText(filters.userId),
+    entity: normalizeOptionalText(filters.entity),
+    entityId: normalizeOptionalText(filters.entityId),
+
     createdAt:
-      filters.dateFrom || filters.dateTo
+      dateFrom || dateTo
         ? {
-            gte: filters.dateFrom || undefined,
-            lte: filters.dateTo || undefined,
+            gte: dateFrom,
+            lte: dateTo,
           }
         : undefined,
   };
+};
+
+export const getAuditLogs = async ({ tenantId, filters = {} }) => {
+  const { take, skip } = normalizePagination(filters);
+
+  const where = buildAuditWhere({
+    tenantId,
+    filters,
+  });
 
   const [logs, total] = await Promise.all([
     prisma.auditLog.findMany({
       where,
-      take: filters.take,
-      skip: filters.skip,
+      take,
+      skip,
       orderBy: {
         createdAt: "desc",
       },
-      include: {
-        user: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            status: true,
-          },
-        },
-        tenant: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
-      },
+      include: auditInclude,
     }),
 
     prisma.auditLog.count({
@@ -50,8 +97,8 @@ export const getAuditLogs = async ({ tenantId, filters }) => {
 
   return {
     total,
-    take: filters.take,
-    skip: filters.skip,
+    take,
+    skip,
     logs,
   };
 };
@@ -62,22 +109,7 @@ export const getAuditLogById = async ({ tenantId, auditId }) => {
       id: auditId,
       tenantId,
     },
-    include: {
-      user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-          status: true,
-        },
-      },
-      tenant: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-    },
+    include: auditInclude,
   });
 
   if (!log) {
