@@ -12,6 +12,7 @@ import operationRoutes from "./modules/operations/operation.routes.js";
 import auditRoutes from "./modules/audit/audit.routes.js";
 import notificationRoutes from "./modules/notifications/notification.routes.js";
 import attachmentRoutes from "./modules/attachments/attachment.routes.js";
+import userRoutes from "./modules/users/user.routes.js";
 
 import {
   errorMiddleware,
@@ -99,6 +100,7 @@ app.use("/api/operations", operationRoutes);
 app.use("/api/audit", auditRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/attachments", attachmentRoutes);
+app.use("/api/users", userRoutes);
 
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);
