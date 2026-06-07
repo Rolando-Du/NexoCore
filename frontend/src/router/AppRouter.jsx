@@ -9,6 +9,7 @@ import Evidences from "../pages/Evidences";
 import Audit from "../pages/Audit";
 import AdminLayout from "../layouts/AdminLayout";
 import ProtectedRoute from "../components/common/ProtectedRoute";
+import Users from "../pages/Users";
 
 const AppRouter = () => {
   return (
@@ -25,6 +26,7 @@ const AppRouter = () => {
           }
         >
           <Route index element={<Dashboard />} />
+          <Route path="users" element={<Users />} />
           <Route path="clients" element={<Clients />} />
           <Route path="operations" element={<Operations />} />
           <Route path="evidences" element={<Evidences />} />

@@ -8,6 +8,10 @@ const navItems = [
     path: "/",
   },
   {
+    label: "Usuarios",
+    path: "/users",
+  },
+  {
     label: "Clientes",
     path: "/clients",
   },
@@ -82,8 +86,12 @@ const AdminLayout = () => {
           <aside className="relative z-10 h-full w-72 border-r border-slate-800 bg-slate-950 p-6 shadow-2xl">
             <div className="flex items-start justify-between gap-4">
               <div>
-                <h1 className="text-2xl font-bold text-cyan-400">NexoCore</h1>
-                <p className="mt-1 text-xs text-slate-400">Enterprise SaaS</p>
+                <h1 className="text-2xl font-bold text-cyan-400">
+                  NexoCore
+                </h1>
+                <p className="mt-1 text-xs text-slate-400">
+                  Enterprise SaaS
+                </p>
               </div>
 
               <button
@@ -121,8 +129,8 @@ const AdminLayout = () => {
       )}
 
       <section className="min-w-0 flex-1">
-        <header className="h-16 border-b border-slate-800 bg-slate-900/60 px-4 md:px-6 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <header className="flex h-16 items-center justify-between border-b border-slate-800 bg-slate-900/60 px-4 md:px-6">
+          <div className="flex min-w-0 items-center gap-3">
             <button
               type="button"
               onClick={() => setIsMobileMenuOpen(true)}
@@ -131,15 +139,19 @@ const AdminLayout = () => {
               ☰
             </button>
 
-            <div>
+            <div className="min-w-0">
               <p className="text-sm text-slate-400">Empresa</p>
-              <p className="font-semibold">{userSession?.tenant?.name}</p>
+              <p className="truncate font-semibold">
+                {userSession?.tenant?.name}
+              </p>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             <div className="hidden text-right sm:block">
-              <p className="text-sm font-medium">{userSession?.user?.name}</p>
+              <p className="text-sm font-medium">
+                {userSession?.user?.name}
+              </p>
               <p className="text-xs text-slate-400">
                 {userSession?.role?.name}
               </p>
