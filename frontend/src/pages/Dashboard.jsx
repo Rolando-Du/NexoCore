@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
+import { usePermissions } from "../hooks/usePermissions";
 
 const statusLabels = {
   DRAFT: "Borrador",
@@ -24,36 +25,42 @@ const statCards = [
   {
     key: "totalClients",
     label: "Clientes",
+    permissions: ["clients:read"],
     className: "border-slate-800 bg-slate-900/70 text-slate-100",
     labelClassName: "text-slate-400",
   },
   {
     key: "totalOperations",
     label: "Operaciones",
+    permissions: ["operations:read"],
     className: "border-slate-800 bg-slate-900/70 text-slate-100",
     labelClassName: "text-slate-400",
   },
   {
     key: "pending",
     label: "Pendientes",
+    permissions: ["operations:read"],
     className: "border-yellow-500/20 bg-yellow-500/10 text-yellow-300",
     labelClassName: "text-yellow-200",
   },
   {
     key: "inProgress",
     label: "En progreso",
+    permissions: ["operations:read"],
     className: "border-cyan-500/20 bg-cyan-500/10 text-cyan-300",
     labelClassName: "text-cyan-200",
   },
   {
     key: "completed",
     label: "Completadas",
+    permissions: ["operations:read"],
     className: "border-emerald-500/20 bg-emerald-500/10 text-emerald-300",
     labelClassName: "text-emerald-200",
   },
   {
     key: "unreadNotifications",
     label: "No leídas",
+    permissions: [],
     className: "border-purple-500/20 bg-purple-500/10 text-purple-300",
     labelClassName: "text-purple-200",
   },
@@ -61,13 +68,26 @@ const statCards = [
 
 const Dashboard = () => {
   const { userSession } = useAuth();
+  const { can, canAny } = usePermissions();
+
+  const canReadClients = can("clients:read");
+  const canReadOperations = can("operations:read");
 
   const [clients, setClients] = useState([]);
   const [operations, setOperations] = useState([]);
   const [notifications, setNotifications] = useState([]);
+  const [unreadNotificationsTotal, setUnreadNotificationsTotal] = useState(0);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const visibleStatCards = useMemo(() => {
+    return statCards.filter((card) => {
+      if (card.permissions.length === 0) return true;
+
+      return canAny(card.permissions);
+    });
+  }, [canAny]);
 
   const stats = useMemo(() => {
     const pending = operations.filter(
@@ -82,19 +102,15 @@ const Dashboard = () => {
       (operation) => operation.status === "COMPLETED"
     ).length;
 
-    const unreadNotifications = notifications.filter(
-      (notification) => notification.status === "UNREAD"
-    ).length;
-
     return {
       totalClients: clients.length,
       totalOperations: operations.length,
       pending,
       inProgress,
       completed,
-      unreadNotifications,
+      unreadNotifications: unreadNotificationsTotal,
     };
-  }, [clients, operations, notifications]);
+  }, [clients, operations, unreadNotificationsTotal]);
 
   const latestOperations = useMemo(() => {
     return operations.slice(0, 5);
@@ -111,8 +127,14 @@ const Dashboard = () => {
 
       const [clientsResponse, operationsResponse, notificationsResponse] =
         await Promise.all([
-          api.get("/clients"),
-          api.get("/operations"),
+          canReadClients
+            ? api.get("/clients")
+            : Promise.resolve({ data: { data: [] } }),
+
+          canReadOperations
+            ? api.get("/operations")
+            : Promise.resolve({ data: { data: [] } }),
+
           api.get("/notifications/my", {
             params: {
               take: 50,
@@ -121,9 +143,12 @@ const Dashboard = () => {
           }),
         ]);
 
+      const notificationsData = notificationsResponse.data.data;
+
       setClients(clientsResponse.data.data);
       setOperations(operationsResponse.data.data);
-      setNotifications(notificationsResponse.data.data.notifications);
+      setNotifications(notificationsData.notifications || []);
+      setUnreadNotificationsTotal(notificationsData.unreadTotal ?? 0);
     } catch (error) {
       setError(
         error.response?.data?.message ||
@@ -132,7 +157,7 @@ const Dashboard = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [canReadClients, canReadOperations]);
 
   useEffect(() => {
     const timerId = window.setTimeout(() => {
@@ -157,9 +182,10 @@ const Dashboard = () => {
         <button
           type="button"
           onClick={loadDashboard}
-          className="w-full rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-cyan-400 md:w-auto"
+          disabled={loading}
+          className="w-full rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 md:w-auto"
         >
-          Actualizar
+          {loading ? "Actualizando..." : "Actualizar"}
         </button>
       </div>
 
@@ -169,12 +195,19 @@ const Dashboard = () => {
         </div>
       )}
 
+      {!canReadClients && !canReadOperations && (
+        <div className="mt-6 rounded-lg border border-slate-700 bg-slate-900/70 px-4 py-3 text-sm text-slate-400">
+          Tu rol actual tiene una vista reducida del dashboard. Solo se muestran
+          las notificaciones personales disponibles.
+        </div>
+      )}
+
       {loading ? (
         <p className="mt-8 text-slate-400">Cargando dashboard...</p>
       ) : (
         <>
           <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
-            {statCards.map((card) => (
+            {visibleStatCards.map((card) => (
               <article
                 key={card.key}
                 className={`rounded-2xl border p-4 md:p-6 ${card.className}`}
@@ -187,61 +220,67 @@ const Dashboard = () => {
             ))}
           </div>
 
-          <div className="mt-6 grid gap-6 xl:grid-cols-2">
-            <section className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                <h3 className="text-lg font-semibold md:text-xl">
-                  Últimas operaciones
-                </h3>
+          <div
+            className={`mt-6 grid gap-6 ${
+              canReadOperations ? "xl:grid-cols-2" : "xl:grid-cols-1"
+            }`}
+          >
+            {canReadOperations && (
+              <section className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <h3 className="text-lg font-semibold md:text-xl">
+                    Últimas operaciones
+                  </h3>
 
-                <span className="w-fit rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
-                  {latestOperations.length}
-                </span>
-              </div>
+                  <span className="w-fit rounded-full bg-slate-800 px-3 py-1 text-xs text-slate-300">
+                    {latestOperations.length}
+                  </span>
+                </div>
 
-              {latestOperations.length === 0 ? (
-                <p className="mt-6 text-slate-400">
-                  Todavía no hay operaciones cargadas.
-                </p>
-              ) : (
-                <div className="mt-6 space-y-4">
-                  {latestOperations.map((operation) => (
-                    <article
-                      key={operation.id}
-                      className="min-w-0 rounded-xl border border-slate-800 bg-slate-950/60 p-4"
-                    >
-                      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                        <div className="min-w-0">
-                          <h4 className="wrap-break-word font-semibold text-slate-100">
-                            {operation.title}
-                          </h4>
+                {latestOperations.length === 0 ? (
+                  <p className="mt-6 text-slate-400">
+                    Todavía no hay operaciones cargadas.
+                  </p>
+                ) : (
+                  <div className="mt-6 space-y-4">
+                    {latestOperations.map((operation) => (
+                      <article
+                        key={operation.id}
+                        className="min-w-0 rounded-xl border border-slate-800 bg-slate-950/60 p-4"
+                      >
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                          <div className="min-w-0">
+                            <h4 className="wrap-break-word font-semibold text-slate-100">
+                              {operation.title}
+                            </h4>
 
-                          <p className="mt-1 wrap-break-word text-sm text-slate-400">
-                            {operation.client?.name || "Sin cliente"}
-                          </p>
+                            <p className="mt-1 wrap-break-word text-sm text-slate-400">
+                              {operation.client?.name || "Sin cliente"}
+                            </p>
+                          </div>
+
+                          <span
+                            className={`w-fit shrink-0 rounded-full px-3 py-1 text-xs ${
+                              statusClassName[operation.status] ||
+                              "bg-slate-500/10 text-slate-300"
+                            }`}
+                          >
+                            {statusLabels[operation.status] || operation.status}
+                          </span>
                         </div>
 
-                        <span
-                          className={`w-fit shrink-0 rounded-full px-3 py-1 text-xs ${
-                            statusClassName[operation.status] ||
-                            "bg-slate-500/10 text-slate-300"
-                          }`}
-                        >
-                          {statusLabels[operation.status] || operation.status}
-                        </span>
-                      </div>
-
-                      <p className="mt-3 text-xs text-slate-500">
-                        Creada:{" "}
-                        <span className="text-slate-400">
-                          {new Date(operation.createdAt).toLocaleString()}
-                        </span>
-                      </p>
-                    </article>
-                  ))}
-                </div>
-              )}
-            </section>
+                        <p className="mt-3 text-xs text-slate-500">
+                          Creada:{" "}
+                          <span className="text-slate-400">
+                            {new Date(operation.createdAt).toLocaleString()}
+                          </span>
+                        </p>
+                      </article>
+                    ))}
+                  </div>
+                )}
+              </section>
+            )}
 
             <section className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
