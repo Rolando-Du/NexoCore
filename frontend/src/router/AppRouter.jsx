@@ -26,12 +26,60 @@ const AppRouter = () => {
           }
         >
           <Route index element={<Dashboard />} />
-          <Route path="users" element={<Users />} />
-          <Route path="clients" element={<Clients />} />
-          <Route path="operations" element={<Operations />} />
-          <Route path="evidences" element={<Evidences />} />
-          <Route path="audit" element={<Audit />} />
-          <Route path="notifications" element={<Notifications />} />
+
+          <Route
+            path="users"
+            element={
+              <ProtectedRoute permissions={["users:read"]}>
+                <Users />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="clients"
+            element={
+              <ProtectedRoute permissions={["clients:read"]}>
+                <Clients />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="operations"
+            element={
+              <ProtectedRoute permissions={["operations:read"]}>
+                <Operations />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="evidences"
+            element={
+              <ProtectedRoute permissions={["operations:read"]}>
+                <Evidences />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="audit"
+            element={
+              <ProtectedRoute permissions={["audit:read"]}>
+                <Audit />
+              </ProtectedRoute>
+            }
+          />
+
+          <Route
+            path="notifications"
+            element={
+              <ProtectedRoute>
+                <Notifications />
+              </ProtectedRoute>
+            }
+          />
         </Route>
 
         <Route path="*" element={<Navigate to="/" replace />} />
