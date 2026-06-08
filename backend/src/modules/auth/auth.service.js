@@ -27,6 +27,51 @@ const INITIAL_PERMISSIONS = [
   "audit:read",
 ];
 
+const DEFAULT_ROLE_PERMISSIONS = {
+  TENANT_ADMIN: INITIAL_PERMISSIONS,
+
+  SUPERVISOR: [
+    "users:read",
+
+    "clients:create",
+    "clients:read",
+    "clients:update",
+
+    "operations:create",
+    "operations:read",
+    "operations:update",
+    "operations:assign",
+    "operations:complete",
+    "operations:cancel",
+
+    "audit:read",
+  ],
+
+  OPERADOR: [
+    "clients:read",
+
+    "operations:create",
+    "operations:read",
+    "operations:update",
+    "operations:complete",
+  ],
+
+  TECNICO: [
+    "clients:read",
+
+    "operations:read",
+    "operations:update",
+    "operations:complete",
+  ],
+};
+
+const ROLE_DESCRIPTIONS = {
+  TENANT_ADMIN: "Administrador principal de la empresa",
+  SUPERVISOR: "Supervisor operativo con acceso amplio a la gestión",
+  OPERADOR: "Usuario operativo con permisos de gestión diaria",
+  TECNICO: "Técnico de campo con permisos sobre operaciones asignadas",
+};
+
 const normalizeRequiredText = (value, fieldName) => {
   const cleanValue = String(value || "").trim();
 
@@ -52,9 +97,9 @@ const normalizeEmail = (email) => {
 };
 
 const getMembershipPermissions = (membership) => {
-  return membership.role.permissions.map(
-    (rolePermission) => rolePermission.permission.key
-  );
+  return (membership.role?.permissions || [])
+    .map((rolePermission) => rolePermission.permission?.key)
+    .filter(Boolean);
 };
 
 const buildAuthResponse = ({ token, user, tenant, role, permissions }) => {
@@ -76,6 +121,46 @@ const buildAuthResponse = ({ token, user, tenant, role, permissions }) => {
     },
     permissions,
   };
+};
+
+const createDefaultRoles = async ({ tx, tenantId, permissionsByKey }) => {
+  const createdRoles = {};
+
+  for (const [roleName, permissionKeys] of Object.entries(
+    DEFAULT_ROLE_PERMISSIONS
+  )) {
+    const role = await tx.role.create({
+      data: {
+        tenantId,
+        name: roleName,
+        description: ROLE_DESCRIPTIONS[roleName] || roleName,
+      },
+    });
+
+    const rolePermissionData = permissionKeys
+      .map((permissionKey) => {
+        const permission = permissionsByKey[permissionKey];
+
+        if (!permission) return null;
+
+        return {
+          roleId: role.id,
+          permissionId: permission.id,
+        };
+      })
+      .filter(Boolean);
+
+    if (rolePermissionData.length > 0) {
+      await tx.rolePermission.createMany({
+        data: rolePermissionData,
+        skipDuplicates: true,
+      });
+    }
+
+    createdRoles[roleName] = role;
+  }
+
+  return createdRoles;
 };
 
 export const registerTenant = async ({
@@ -126,7 +211,9 @@ export const registerTenant = async ({
     });
 
     if (existingTenant) {
-      const error = new Error("Ya existe una empresa registrada con ese CUIT / Tax ID");
+      const error = new Error(
+        "Ya existe una empresa registrada con ese CUIT / Tax ID"
+      );
       error.statusCode = 409;
       throw error;
     }
@@ -152,14 +239,6 @@ export const registerTenant = async ({
       },
     });
 
-    const adminRole = await tx.role.create({
-      data: {
-        tenantId: tenant.id,
-        name: "TENANT_ADMIN",
-        description: "Administrador principal de la empresa",
-      },
-    });
-
     const permissions = [];
 
     for (const permissionKey of INITIAL_PERMISSIONS) {
@@ -177,13 +256,18 @@ export const registerTenant = async ({
       permissions.push(permission);
     }
 
-    await tx.rolePermission.createMany({
-      data: permissions.map((permission) => ({
-        roleId: adminRole.id,
-        permissionId: permission.id,
-      })),
-      skipDuplicates: true,
+    const permissionsByKey = permissions.reduce((acc, permission) => {
+      acc[permission.key] = permission;
+      return acc;
+    }, {});
+
+    const roles = await createDefaultRoles({
+      tx,
+      tenantId: tenant.id,
+      permissionsByKey,
     });
+
+    const adminRole = roles.TENANT_ADMIN;
 
     await tx.tenantUser.create({
       data: {
@@ -206,6 +290,7 @@ export const registerTenant = async ({
           tenantName: tenant.name,
           adminUserId: adminUser.id,
           adminEmail: adminUser.email,
+          roles: Object.keys(roles),
         },
         metadata: {
           event: "REGISTER_TENANT",
@@ -219,6 +304,7 @@ export const registerTenant = async ({
       tenant,
       adminUser,
       adminRole,
+      roles: Object.values(roles),
       permissions,
     };
   });
@@ -239,6 +325,11 @@ export const registerTenant = async ({
       id: result.adminRole.id,
       name: result.adminRole.name,
     },
+    roles: result.roles.map((role) => ({
+      id: role.id,
+      name: role.name,
+      description: role.description,
+    })),
     permissions: result.permissions.map((permission) => permission.key),
   };
 };
@@ -319,6 +410,12 @@ export const login = async ({ email, password, tenantId, ip, userAgent }) => {
 
   if (!membership.tenant.isActive) {
     const error = new Error("La empresa se encuentra inactiva");
+    error.statusCode = 403;
+    throw error;
+  }
+
+  if (!membership.role) {
+    const error = new Error("El usuario no tiene un rol asignado");
     error.statusCode = 403;
     throw error;
   }
