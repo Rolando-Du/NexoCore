@@ -2,7 +2,10 @@ import { Router } from "express";
 
 import * as userController from "./user.controller.js";
 import { authMiddleware } from "../../middlewares/auth.middleware.js";
-import { requirePermission } from "../../middlewares/permission.middleware.js";
+import {
+  requireAnyPermission,
+  requirePermission,
+} from "../../middlewares/permission.middleware.js";
 
 const router = Router();
 
@@ -20,10 +23,14 @@ router.use(authMiddleware);
  *     responses:
  *       200:
  *         description: Roles obtenidos correctamente.
+ *       401:
+ *         description: Token requerido, inválido o expirado.
+ *       403:
+ *         description: No tiene permisos para consultar roles.
  */
 router.get(
   "/roles",
-  requirePermission("users:read"),
+  requireAnyPermission(["users:read", "users:create", "users:update"]),
   userController.getTenantRoles
 );
 
@@ -39,6 +46,10 @@ router.get(
  *     responses:
  *       200:
  *         description: Usuarios obtenidos correctamente.
+ *       401:
+ *         description: Token requerido, inválido o expirado.
+ *       403:
+ *         description: No tiene permisos para consultar usuarios.
  */
 router.get(
   "/",
@@ -84,6 +95,14 @@ router.get(
  *     responses:
  *       201:
  *         description: Usuario creado correctamente.
+ *       400:
+ *         description: Datos inválidos.
+ *       401:
+ *         description: Token requerido, inválido o expirado.
+ *       403:
+ *         description: No tiene permisos para crear usuarios.
+ *       409:
+ *         description: Ya existe un usuario con ese email.
  */
 router.post(
   "/",
@@ -110,6 +129,12 @@ router.post(
  *     responses:
  *       200:
  *         description: Usuario obtenido correctamente.
+ *       401:
+ *         description: Token requerido, inválido o expirado.
+ *       403:
+ *         description: No tiene permisos para consultar usuarios.
+ *       404:
+ *         description: Usuario no encontrado.
  */
 router.get(
   "/:id",
@@ -153,6 +178,14 @@ router.get(
  *     responses:
  *       200:
  *         description: Usuario actualizado correctamente.
+ *       400:
+ *         description: Datos inválidos.
+ *       401:
+ *         description: Token requerido, inválido o expirado.
+ *       403:
+ *         description: No tiene permisos para actualizar usuarios.
+ *       404:
+ *         description: Usuario no encontrado.
  */
 router.put(
   "/:id",
@@ -179,6 +212,12 @@ router.put(
  *     responses:
  *       200:
  *         description: Usuario deshabilitado correctamente.
+ *       401:
+ *         description: Token requerido, inválido o expirado.
+ *       403:
+ *         description: No tiene permisos para deshabilitar usuarios.
+ *       404:
+ *         description: Usuario no encontrado.
  */
 router.patch(
   "/:id/disable",
