@@ -3,18 +3,23 @@ import jwt from "jsonwebtoken";
 import { env } from "../config/env.js";
 import { prisma } from "../config/prisma.js";
 
+const extractBearerToken = (authHeader) => {
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return null;
+  }
+
+  return authHeader.replace("Bearer ", "").trim();
+};
+
+const normalizePermissions = (rolePermissions = []) => {
+  return rolePermissions
+    .map((rolePermission) => rolePermission.permission?.key)
+    .filter(Boolean);
+};
+
 export const authMiddleware = async (req, res, next) => {
   try {
-    const authHeader = req.headers.authorization;
-
-    if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return res.status(401).json({
-        success: false,
-        message: "Token requerido",
-      });
-    }
-
-    const token = authHeader.replace("Bearer ", "").trim();
+    const token = extractBearerToken(req.headers.authorization);
 
     if (!token) {
       return res.status(401).json({
@@ -78,6 +83,13 @@ export const authMiddleware = async (req, res, next) => {
       });
     }
 
+    if (!membership.user) {
+      return res.status(403).json({
+        success: false,
+        message: "Usuario no encontrado",
+      });
+    }
+
     if (membership.user.status !== "ACTIVE") {
       return res.status(403).json({
         success: false,
@@ -85,16 +97,21 @@ export const authMiddleware = async (req, res, next) => {
       });
     }
 
-    if (!membership.tenant.isActive) {
+    if (!membership.tenant?.isActive) {
       return res.status(403).json({
         success: false,
         message: "Empresa inactiva",
       });
     }
 
-    const permissions = membership.role.permissions.map(
-      (rolePermission) => rolePermission.permission.key
-    );
+    if (!membership.role) {
+      return res.status(403).json({
+        success: false,
+        message: "El usuario no tiene un rol asignado",
+      });
+    }
+
+    const permissions = normalizePermissions(membership.role.permissions);
 
     req.context = {
       user: {
@@ -123,9 +140,14 @@ export const authMiddleware = async (req, res, next) => {
       });
     }
 
-    return res.status(401).json({
-      success: false,
-      message: "Token inválido",
-    });
+    if (error instanceof jwt.JsonWebTokenError) {
+      return res.status(401).json({
+        success: false,
+        message: "Token inválido",
+      });
+    }
+
+    return next(error);
   }
 };
+
