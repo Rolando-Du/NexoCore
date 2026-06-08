@@ -2,7 +2,10 @@ import { Router } from "express";
 
 import * as attachmentController from "./attachment.controller.js";
 import { authMiddleware } from "../../middlewares/auth.middleware.js";
-import { requirePermission } from "../../middlewares/permission.middleware.js";
+import {
+  requireAnyPermission,
+  requirePermission,
+} from "../../middlewares/permission.middleware.js";
 import { uploadEvidence } from "../../middlewares/upload.middleware.js";
 
 const router = Router();
@@ -14,7 +17,7 @@ router.use(authMiddleware);
  * /api/attachments/operations/{operationId}:
  *   post:
  *     summary: Subir evidencia a una operación
- *     description: Permite subir una imagen, PDF, Word o Excel como evidencia asociada a una operación.
+ *     description: Permite subir una imagen, PDF, Word o Excel como evidencia asociada a una operación. Requiere permiso para actualizar o completar operaciones.
  *     tags:
  *       - Attachments
  *     security:
@@ -58,7 +61,7 @@ router.use(authMiddleware);
  */
 router.post(
   "/operations/:operationId",
-  requirePermission("operations:update"),
+  requireAnyPermission(["operations:update", "operations:complete"]),
   uploadEvidence.single("file"),
   attachmentController.uploadOperationAttachment
 );
@@ -132,3 +135,4 @@ router.get(
 );
 
 export default router;
+
