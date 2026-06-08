@@ -1,35 +1,43 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { NavLink, Outlet } from "react-router";
 import { useAuth } from "../hooks/useAuth";
+import { usePermissions } from "../hooks/usePermissions";
 
 const navItems = [
   {
     label: "Dashboard",
     path: "/",
+    permissions: [],
   },
   {
     label: "Usuarios",
     path: "/users",
+    permissions: ["users:read"],
   },
   {
     label: "Clientes",
     path: "/clients",
+    permissions: ["clients:read"],
   },
   {
     label: "Operaciones",
     path: "/operations",
+    permissions: ["operations:read"],
   },
   {
     label: "Evidencias",
     path: "/evidences",
+    permissions: ["operations:read"],
   },
   {
     label: "Auditoría",
     path: "/audit",
+    permissions: ["audit:read"],
   },
   {
     label: "Notificaciones",
     path: "/notifications",
+    permissions: [],
   },
 ];
 
@@ -43,7 +51,17 @@ const getNavLinkClass = ({ isActive }) => {
 
 const AdminLayout = () => {
   const { userSession, logout } = useAuth();
+  const { canAny } = usePermissions();
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  const visibleNavItems = useMemo(() => {
+    return navItems.filter((item) => {
+      if (item.permissions.length === 0) return true;
+
+      return canAny(item.permissions);
+    });
+  }, [canAny]);
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
@@ -61,7 +79,7 @@ const AdminLayout = () => {
         <p className="mt-1 text-xs text-slate-400">Enterprise SaaS</p>
 
         <nav className="mt-8 space-y-3 text-sm">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
@@ -104,7 +122,7 @@ const AdminLayout = () => {
             </div>
 
             <nav className="mt-8 space-y-3 text-sm">
-              {navItems.map((item) => (
+              {visibleNavItems.map((item) => (
                 <NavLink
                   key={item.path}
                   to={item.path}
