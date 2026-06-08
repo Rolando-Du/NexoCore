@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../services/api";
+import { usePermissions } from "../hooks/usePermissions";
 
 const initialForm = {
   name: "",
@@ -16,11 +17,19 @@ const cleanPayload = (data) => {
 };
 
 const Clients = () => {
+  const { can } = usePermissions();
+
+  const canCreateClients = can("clients:create");
+  const canDisableClients = can("clients:disable");
+
   const [clients, setClients] = useState([]);
   const [form, setForm] = useState(initialForm);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [updatingClientId, setUpdatingClientId] = useState("");
+
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
 
   const getClients = useCallback(async () => {
     try {
@@ -44,23 +53,57 @@ const Clients = () => {
       ...form,
       [event.target.name]: event.target.value,
     });
+
+    setError("");
+    setSuccessMessage("");
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    if (!canCreateClients) {
+      setError("No tenés permisos para crear clientes");
+      return;
+    }
+
     try {
       setCreating(true);
       setError("");
+      setSuccessMessage("");
 
       await api.post("/clients", cleanPayload(form));
 
       setForm(initialForm);
+      setSuccessMessage("Cliente creado correctamente");
       await getClients();
     } catch (error) {
       setError(error.response?.data?.message || "No se pudo crear el cliente");
     } finally {
       setCreating(false);
+    }
+  };
+
+  const handleDisableClient = async (clientId) => {
+    if (!canDisableClients) {
+      setError("No tenés permisos para deshabilitar clientes");
+      return;
+    }
+
+    try {
+      setUpdatingClientId(clientId);
+      setError("");
+      setSuccessMessage("");
+
+      await api.patch(`/clients/${clientId}/disable`);
+
+      setSuccessMessage("Cliente deshabilitado correctamente");
+      await getClients();
+    } catch (error) {
+      setError(
+        error.response?.data?.message || "No se pudo deshabilitar el cliente"
+      );
+    } finally {
+      setUpdatingClientId("");
     }
   };
 
@@ -99,81 +142,100 @@ const Clients = () => {
         </div>
       )}
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[420px_1fr]">
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6"
-        >
-          <h3 className="text-lg font-semibold md:text-xl">Nuevo cliente</h3>
-          <p className="mt-1 text-sm text-slate-400">
-            Cargá los datos principales del cliente.
-          </p>
+      {successMessage && (
+        <div className="mt-6 rounded-lg border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-300">
+          {successMessage}
+        </div>
+      )}
 
-          <div className="mt-6 space-y-4">
-            <div>
-              <label className="text-sm text-slate-300">Nombre *</label>
-              <input
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                required
-                className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                placeholder="Cliente Demo"
-              />
-            </div>
+      {!canCreateClients && (
+        <div className="mt-6 rounded-lg border border-slate-700 bg-slate-900/70 px-4 py-3 text-sm text-slate-400">
+          Tu rol actual no tiene permiso para crear nuevos clientes.
+        </div>
+      )}
 
-            <div>
-              <label className="text-sm text-slate-300">Razón social</label>
-              <input
-                name="legalName"
-                value={form.legalName}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                placeholder="Cliente Demo S.A."
-              />
-            </div>
-
-            <div>
-              <label className="text-sm text-slate-300">CUIT / Tax ID</label>
-              <input
-                name="taxId"
-                value={form.taxId}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                placeholder="30111222333"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm text-slate-300">Email</label>
-              <input
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                placeholder="contacto@cliente.com"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm text-slate-300">Teléfono</label>
-              <input
-                name="phone"
-                value={form.phone}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                placeholder="+54 11 5555-5555"
-              />
-            </div>
-          </div>
-
-          <button
-            disabled={creating}
-            className="mt-6 w-full rounded-lg bg-cyan-500 px-4 py-3 font-semibold text-slate-950 hover:bg-cyan-400 disabled:opacity-60"
+      <div
+        className={`mt-6 grid gap-6 ${
+          canCreateClients ? "xl:grid-cols-[420px_1fr]" : "xl:grid-cols-1"
+        }`}
+      >
+        {canCreateClients && (
+          <form
+            onSubmit={handleSubmit}
+            className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6"
           >
-            {creating ? "Creando..." : "Crear cliente"}
-          </button>
-        </form>
+            <h3 className="text-lg font-semibold md:text-xl">Nuevo cliente</h3>
+            <p className="mt-1 text-sm text-slate-400">
+              Cargá los datos principales del cliente.
+            </p>
+
+            <div className="mt-6 space-y-4">
+              <div>
+                <label className="text-sm text-slate-300">Nombre *</label>
+                <input
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
+                  required
+                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                  placeholder="Cliente Demo"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-slate-300">Razón social</label>
+                <input
+                  name="legalName"
+                  value={form.legalName}
+                  onChange={handleChange}
+                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                  placeholder="Cliente Demo S.A."
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-slate-300">CUIT / Tax ID</label>
+                <input
+                  name="taxId"
+                  value={form.taxId}
+                  onChange={handleChange}
+                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                  placeholder="30111222333"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-slate-300">Email</label>
+                <input
+                  name="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                  placeholder="contacto@cliente.com"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-slate-300">Teléfono</label>
+                <input
+                  name="phone"
+                  value={form.phone}
+                  onChange={handleChange}
+                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                  placeholder="+54 11 5555-5555"
+                />
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={creating}
+              className="mt-6 w-full rounded-lg bg-cyan-500 px-4 py-3 font-semibold text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {creating ? "Creando..." : "Crear cliente"}
+            </button>
+          </form>
+        )}
 
         <div className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -242,6 +304,19 @@ const Clients = () => {
                         </p>
                       )}
                     </div>
+
+                    {canDisableClients && (
+                      <button
+                        type="button"
+                        disabled={
+                          updatingClientId === client.id || !client.isActive
+                        }
+                        onClick={() => handleDisableClient(client.id)}
+                        className="mt-4 w-full rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        Deshabilitar
+                      </button>
+                    )}
                   </article>
                 ))}
               </div>
@@ -254,6 +329,9 @@ const Clients = () => {
                       <th className="py-3 pr-4">Email</th>
                       <th className="py-3 pr-4">Teléfono</th>
                       <th className="py-3 pr-4">Estado</th>
+                      {canDisableClients && (
+                        <th className="py-3 pr-4">Acciones</th>
+                      )}
                     </tr>
                   </thead>
 
@@ -291,6 +369,22 @@ const Clients = () => {
                             {client.isActive ? "Activo" : "Inactivo"}
                           </span>
                         </td>
+
+                        {canDisableClients && (
+                          <td className="py-4 pr-4">
+                            <button
+                              type="button"
+                              disabled={
+                                updatingClientId === client.id ||
+                                !client.isActive
+                              }
+                              onClick={() => handleDisableClient(client.id)}
+                              className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Deshabilitar
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     ))}
                   </tbody>
@@ -305,3 +399,4 @@ const Clients = () => {
 };
 
 export default Clients;
+
