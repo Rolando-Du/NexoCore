@@ -8,6 +8,53 @@ const router = Router();
 
 router.use(authMiddleware);
 
+const getPermissionKeys = (req) => {
+  return (req.context?.permissions || [])
+    .map((permission) => {
+      if (typeof permission === "string") return permission;
+      return permission?.key;
+    })
+    .filter(Boolean);
+};
+
+const hasPermission = (req, permissionKey) => {
+  const permissions = getPermissionKeys(req);
+
+  return permissions.includes(permissionKey);
+};
+
+const getRequiredStatusPermission = (status) => {
+  if (status === "COMPLETED") {
+    return "operations:complete";
+  }
+
+  if (status === "CANCELLED") {
+    return "operations:cancel";
+  }
+
+  return "operations:update";
+};
+
+const requireStatusPermission = (req, res, next) => {
+  const requestedStatus = req.body?.status;
+
+  if (!requestedStatus) {
+    return next();
+  }
+
+  const requiredPermission = getRequiredStatusPermission(requestedStatus);
+
+  if (hasPermission(req, requiredPermission)) {
+    return next();
+  }
+
+  return res.status(403).json({
+    success: false,
+    message: `No tiene permisos para cambiar la operación al estado ${requestedStatus}`,
+    requiredPermission,
+  });
+};
+
 /**
  * @swagger
  * /api/operations:
@@ -170,7 +217,7 @@ router.get(
  * /api/operations/{id}/status:
  *   patch:
  *     summary: Cambiar estado de operación
- *     description: Actualiza el estado de una operación y registra historial, auditoría y notificación.
+ *     description: Actualiza el estado de una operación y registra historial, auditoría y notificación. Para completar se requiere operations:complete, para cancelar se requiere operations:cancel y para estados intermedios se requiere operations:update.
  *     tags:
  *       - Operations
  *     security:
@@ -207,7 +254,7 @@ router.get(
  *       401:
  *         description: Token requerido, inválido o expirado.
  *       403:
- *         description: No tiene permisos para actualizar operaciones.
+ *         description: No tiene permisos para aplicar el estado solicitado.
  *       404:
  *         description: Operación no encontrada.
  *       409:
@@ -215,7 +262,7 @@ router.get(
  */
 router.patch(
   "/:id/status",
-  requirePermission("operations:update"),
+  requireStatusPermission,
   operationController.updateOperationStatus
 );
 

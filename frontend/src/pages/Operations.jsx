@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { api } from "../services/api";
 import { useAuth } from "../hooks/useAuth";
+import { usePermissions } from "../hooks/usePermissions";
 
 const initialForm = {
   clientId: "",
@@ -89,6 +90,18 @@ const cleanPayload = (data) => {
 
 const Operations = () => {
   const { userSession } = useAuth();
+  const { can, canAny } = usePermissions();
+
+  const canCreateOperations = can("operations:create");
+  const canUpdateOperations = can("operations:update");
+  const canCompleteOperations = can("operations:complete");
+  const canCancelOperations = can("operations:cancel");
+
+  const canChangeStatus = canAny([
+    "operations:update",
+    "operations:complete",
+    "operations:cancel",
+  ]);
 
   const [operations, setOperations] = useState([]);
   const [clients, setClients] = useState([]);
@@ -104,6 +117,20 @@ const Operations = () => {
     return clients.filter((client) => client.isActive);
   }, [clients]);
 
+  const availableStatuses = useMemo(() => {
+    return statuses.filter((status) => {
+      if (status.value === "COMPLETED") {
+        return canCompleteOperations;
+      }
+
+      if (status.value === "CANCELLED") {
+        return canCancelOperations;
+      }
+
+      return canUpdateOperations;
+    });
+  }, [canCancelOperations, canCompleteOperations, canUpdateOperations]);
+
   const getOperations = useCallback(async () => {
     try {
       setLoading(true);
@@ -115,7 +142,7 @@ const Operations = () => {
     } catch (error) {
       setError(
         error.response?.data?.message ||
-          "No se pudieron obtener las operaciones"
+          "No se pudieron obtener las operaciones",
       );
     } finally {
       setLoading(false);
@@ -129,7 +156,7 @@ const Operations = () => {
       setClients(response.data.data);
     } catch (error) {
       setError(
-        error.response?.data?.message || "No se pudieron obtener los clientes"
+        error.response?.data?.message || "No se pudieron obtener los clientes",
       );
     }
   }, []);
@@ -143,6 +170,9 @@ const Operations = () => {
       ...form,
       [event.target.name]: event.target.value,
     });
+
+    setError("");
+    setSuccessMessage("");
   };
 
   const handleStatusSelect = (operationId, value) => {
@@ -150,10 +180,18 @@ const Operations = () => {
       ...currentStatusChanges,
       [operationId]: value,
     }));
+
+    setError("");
+    setSuccessMessage("");
   };
 
   const handleSubmit = async (event) => {
     event.preventDefault();
+
+    if (!canCreateOperations) {
+      setError("No tenés permisos para crear operaciones");
+      return;
+    }
 
     try {
       setCreating(true);
@@ -171,17 +209,33 @@ const Operations = () => {
       setSuccessMessage("Operación creada correctamente");
       await getOperations();
     } catch (error) {
-      setError(error.response?.data?.message || "No se pudo crear la operación");
+      setError(
+        error.response?.data?.message || "No se pudo crear la operación",
+      );
     } finally {
       setCreating(false);
     }
   };
 
   const handleUpdateStatus = async (operation) => {
+    if (!canChangeStatus) {
+      setError("No tenés permisos para cambiar estados de operaciones");
+      return;
+    }
+
     const nextStatus = statusChanges[operation.id];
 
     if (!nextStatus) {
       setError("Seleccioná un estado para actualizar la operación");
+      return;
+    }
+
+    const isAllowedStatus = availableStatuses.some(
+      (status) => status.value === nextStatus,
+    );
+
+    if (!isAllowedStatus) {
+      setError("No tenés permisos para aplicar ese estado");
       return;
     }
 
@@ -206,7 +260,7 @@ const Operations = () => {
     } catch (error) {
       setError(
         error.response?.data?.message ||
-          "No se pudo actualizar el estado de la operación"
+          "No se pudo actualizar el estado de la operación",
       );
     } finally {
       setUpdatingStatusId(null);
@@ -254,115 +308,128 @@ const Operations = () => {
         </div>
       )}
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[420px_1fr]">
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6"
-        >
-          <h3 className="text-lg font-semibold md:text-xl">
-            Nueva operación
-          </h3>
-          <p className="mt-1 text-sm text-slate-400">
-            Creá una tarea, orden de trabajo o incidente.
-          </p>
+      {!canCreateOperations && (
+        <div className="mt-6 rounded-lg border border-slate-700 bg-slate-900/70 px-4 py-3 text-sm text-slate-400">
+          Tu rol actual no tiene permiso para crear nuevas operaciones.
+        </div>
+      )}
 
-          <div className="mt-6 space-y-4">
-            <div>
-              <label className="text-sm text-slate-300">Cliente</label>
-              <select
-                name="clientId"
-                value={form.clientId}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-              >
-                <option value="">Sin cliente asociado</option>
-                {activeClients.map((client) => (
-                  <option key={client.id} value={client.id}>
-                    {client.name}
-                  </option>
-                ))}
-              </select>
-            </div>
+      <div
+        className={`mt-6 grid gap-6 ${
+          canCreateOperations ? "xl:grid-cols-[420px_1fr]" : "xl:grid-cols-1"
+        }`}
+      >
+        {canCreateOperations && (
+          <form
+            onSubmit={handleSubmit}
+            className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6"
+          >
+            <h3 className="text-lg font-semibold md:text-xl">
+              Nueva operación
+            </h3>
+            <p className="mt-1 text-sm text-slate-400">
+              Creá una tarea, orden de trabajo o incidente.
+            </p>
 
-            <div>
-              <label className="text-sm text-slate-300">Tipo *</label>
-              <select
-                name="type"
-                value={form.type}
-                onChange={handleChange}
-                className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-              >
-                {operationTypes.map((type) => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="text-sm text-slate-300">Título *</label>
-              <input
-                name="title"
-                value={form.title}
-                onChange={handleChange}
-                required
-                className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                placeholder="Verificar instalación eléctrica"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm text-slate-300">Descripción</label>
-              <textarea
-                name="description"
-                value={form.description}
-                onChange={handleChange}
-                rows="4"
-                className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
-                placeholder="Detalle del trabajo a realizar..."
-              />
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+            <div className="mt-6 space-y-4">
               <div>
-                <label className="text-sm text-slate-300">Prioridad</label>
+                <label className="text-sm text-slate-300">Cliente</label>
                 <select
-                  name="priority"
-                  value={form.priority}
+                  name="clientId"
+                  value={form.clientId}
                   onChange={handleChange}
                   className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
                 >
-                  {priorities.map((priority) => (
-                    <option key={priority.value} value={priority.value}>
-                      {priority.label}
+                  <option value="">Sin cliente asociado</option>
+                  {activeClients.map((client) => (
+                    <option key={client.id} value={client.id}>
+                      {client.name}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="text-sm text-slate-300">
-                  Fecha programada
-                </label>
-                <input
-                  type="datetime-local"
-                  name="scheduledAt"
-                  value={form.scheduledAt}
+                <label className="text-sm text-slate-300">Tipo *</label>
+                <select
+                  name="type"
+                  value={form.type}
                   onChange={handleChange}
                   className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                >
+                  {operationTypes.map((type) => (
+                    <option key={type.value} value={type.value}>
+                      {type.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-sm text-slate-300">Título *</label>
+                <input
+                  name="title"
+                  value={form.title}
+                  onChange={handleChange}
+                  required
+                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                  placeholder="Verificar instalación eléctrica"
                 />
               </div>
-            </div>
-          </div>
 
-          <button
-            disabled={creating}
-            className="mt-6 w-full rounded-lg bg-cyan-500 px-4 py-3 font-semibold text-slate-950 hover:bg-cyan-400 disabled:opacity-60"
-          >
-            {creating ? "Creando..." : "Crear operación"}
-          </button>
-        </form>
+              <div>
+                <label className="text-sm text-slate-300">Descripción</label>
+                <textarea
+                  name="description"
+                  value={form.description}
+                  onChange={handleChange}
+                  rows="4"
+                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                  placeholder="Detalle del trabajo a realizar..."
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-1">
+                <div>
+                  <label className="text-sm text-slate-300">Prioridad</label>
+                  <select
+                    name="priority"
+                    value={form.priority}
+                    onChange={handleChange}
+                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                  >
+                    {priorities.map((priority) => (
+                      <option key={priority.value} value={priority.value}>
+                        {priority.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="text-sm text-slate-300">
+                    Fecha programada
+                  </label>
+                  <input
+                    type="datetime-local"
+                    name="scheduledAt"
+                    value={form.scheduledAt}
+                    onChange={handleChange}
+                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={creating}
+              className="mt-6 w-full rounded-lg bg-cyan-500 px-4 py-3 font-semibold text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {creating ? "Creando..." : "Crear operación"}
+            </button>
+          </form>
+        )}
 
         <section className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -456,37 +523,43 @@ const Operations = () => {
                       </div>
                     </div>
 
-                    <div className="w-full xl:w-60 xl:shrink-0">
-                      <label className="text-xs text-slate-400">
-                        Cambiar estado
-                      </label>
+                    {canChangeStatus && (
+                      <div className="w-full xl:w-60 xl:shrink-0">
+                        <label className="text-xs text-slate-400">
+                          Cambiar estado
+                        </label>
 
-                      <select
-                        value={statusChanges[operation.id] || ""}
-                        onChange={(event) =>
-                          handleStatusSelect(operation.id, event.target.value)
-                        }
-                        className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400"
-                      >
-                        <option value="">Seleccionar...</option>
-                        {statuses.map((status) => (
-                          <option key={status.value} value={status.value}>
-                            {status.label}
-                          </option>
-                        ))}
-                      </select>
+                        <select
+                          value={statusChanges[operation.id] || ""}
+                          onChange={(event) =>
+                            handleStatusSelect(operation.id, event.target.value)
+                          }
+                          disabled={updatingStatusId === operation.id}
+                          className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400 disabled:opacity-60"
+                        >
+                          <option value="">Seleccionar...</option>
+                          {availableStatuses.map((status) => (
+                            <option key={status.value} value={status.value}>
+                              {status.label}
+                            </option>
+                          ))}
+                        </select>
 
-                      <button
-                        type="button"
-                        onClick={() => handleUpdateStatus(operation)}
-                        disabled={updatingStatusId === operation.id}
-                        className="mt-3 w-full rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-slate-100 hover:bg-cyan-500 hover:text-slate-950 disabled:opacity-60"
-                      >
-                        {updatingStatusId === operation.id
-                          ? "Actualizando..."
-                          : "Actualizar estado"}
-                      </button>
-                    </div>
+                        <button
+                          type="button"
+                          onClick={() => handleUpdateStatus(operation)}
+                          disabled={
+                            updatingStatusId === operation.id ||
+                            !statusChanges[operation.id]
+                          }
+                          className="mt-3 w-full rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-slate-100 hover:bg-cyan-500 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          {updatingStatusId === operation.id
+                            ? "Actualizando..."
+                            : "Actualizar estado"}
+                        </button>
+                      </div>
+                    )}
                   </div>
                 </article>
               ))}
