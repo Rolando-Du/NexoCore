@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
+import { Link } from "react-router";
 import { api } from "../services/api";
+import { usePermissions } from "../hooks/usePermissions";
 
 const actionOptions = [
   { value: "", label: "Todas" },
@@ -43,6 +45,9 @@ const formatJson = (value) => {
 };
 
 const Audit = () => {
+  const { can } = usePermissions();
+  const canReadAudit = can("audit:read");
+
   const [logs, setLogs] = useState([]);
   const [total, setTotal] = useState(0);
 
@@ -59,6 +64,8 @@ const Audit = () => {
   const [error, setError] = useState("");
 
   const getAuditLogs = useCallback(async () => {
+    if (!canReadAudit) return;
+
     try {
       setLoading(true);
       setError("");
@@ -88,9 +95,14 @@ const Audit = () => {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [canReadAudit, filters]);
 
   const getAuditDetail = async (auditId) => {
+    if (!canReadAudit) {
+      setError("No tenés permisos para consultar auditoría");
+      return;
+    }
+
     try {
       setSelectedLog(null);
       setIsDetailModalOpen(true);
@@ -132,6 +144,34 @@ const Audit = () => {
       window.clearTimeout(timerId);
     };
   }, [getAuditLogs]);
+
+  if (!canReadAudit) {
+    return (
+      <div className="flex min-h-[70vh] items-center justify-center">
+        <div className="max-w-md rounded-2xl border border-slate-800 bg-slate-900/70 p-6 text-center">
+          <p className="text-sm font-semibold uppercase tracking-[0.3em] text-red-300">
+            Acceso denegado
+          </p>
+
+          <h2 className="mt-3 text-2xl font-bold text-slate-100">
+            No tenés permisos para ver auditoría
+          </h2>
+
+          <p className="mt-3 text-sm text-slate-400">
+            Tu rol actual no cuenta con el permiso necesario para consultar los
+            registros del sistema.
+          </p>
+
+          <Link
+            to="/"
+            className="mt-6 inline-flex rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-cyan-400"
+          >
+            Volver al dashboard
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-full overflow-hidden">
