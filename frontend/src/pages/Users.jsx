@@ -53,7 +53,9 @@ const Users = () => {
         };
       });
     } catch (error) {
-      setError(error.response?.data?.message || "No se pudieron obtener los roles");
+      setError(
+        error.response?.data?.message || "No se pudieron obtener los roles"
+      );
     } finally {
       setLoadingRoles(false);
     }
@@ -68,7 +70,9 @@ const Users = () => {
 
       setUsers(response.data.data);
     } catch (error) {
-      setError(error.response?.data?.message || "No se pudieron obtener los usuarios");
+      setError(
+        error.response?.data?.message || "No se pudieron obtener los usuarios"
+      );
     } finally {
       setLoading(false);
     }
@@ -118,7 +122,7 @@ const Users = () => {
     }
   };
 
-  const handleStatusChange = async ({ userId, status, roleId, name }) => {
+  const handleUserUpdate = async ({ userId, name, roleId, status }) => {
     try {
       setUpdatingUserId(userId);
       setError("");
@@ -133,7 +137,9 @@ const Users = () => {
       setSuccessMessage("Usuario actualizado correctamente");
       await getUsers();
     } catch (error) {
-      setError(error.response?.data?.message || "No se pudo actualizar el usuario");
+      setError(
+        error.response?.data?.message || "No se pudo actualizar el usuario"
+      );
     } finally {
       setUpdatingUserId("");
     }
@@ -150,7 +156,9 @@ const Users = () => {
       setSuccessMessage("Usuario deshabilitado correctamente");
       await getUsers();
     } catch (error) {
-      setError(error.response?.data?.message || "No se pudo deshabilitar el usuario");
+      setError(
+        error.response?.data?.message || "No se pudo deshabilitar el usuario"
+      );
     } finally {
       setUpdatingUserId("");
     }
@@ -318,13 +326,34 @@ const Users = () => {
                           <p className="font-medium text-slate-100">
                             {membership.user.name}
                           </p>
-                          <p className="text-xs text-slate-500">
+                          <p className="break-all text-xs text-slate-500">
                             {membership.user.email}
                           </p>
                         </td>
 
-                        <td className="py-4 pr-4 text-slate-300">
-                          {membership.role.name}
+                        <td className="py-4 pr-4">
+                          <select
+                            value={membership.role.id}
+                            disabled={
+                              updatingUserId === membership.user.id ||
+                              loadingRoles
+                            }
+                            onChange={(event) =>
+                              handleUserUpdate({
+                                userId: membership.user.id,
+                                name: membership.user.name,
+                                roleId: event.target.value,
+                                status: membership.user.status,
+                              })
+                            }
+                            className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none focus:border-cyan-400 disabled:opacity-60"
+                          >
+                            {roles.map((role) => (
+                              <option key={role.id} value={role.id}>
+                                {role.name}
+                              </option>
+                            ))}
+                          </select>
                         </td>
 
                         <td className="py-4 pr-4">
@@ -344,14 +373,14 @@ const Users = () => {
                               value={membership.user.status}
                               disabled={updatingUserId === membership.user.id}
                               onChange={(event) =>
-                                handleStatusChange({
+                                handleUserUpdate({
                                   userId: membership.user.id,
-                                  status: event.target.value,
-                                  roleId: membership.role.id,
                                   name: membership.user.name,
+                                  roleId: membership.role.id,
+                                  status: event.target.value,
                                 })
                               }
-                              className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none focus:border-cyan-400"
+                              className="rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-xs text-slate-100 outline-none focus:border-cyan-400 disabled:opacity-60"
                             >
                               <option value="ACTIVE">Activo</option>
                               <option value="INACTIVE">Inactivo</option>
@@ -364,7 +393,9 @@ const Users = () => {
                                 updatingUserId === membership.user.id ||
                                 membership.user.status === "INACTIVE"
                               }
-                              onClick={() => handleDisableUser(membership.user.id)}
+                              onClick={() =>
+                                handleDisableUser(membership.user.id)
+                              }
                               className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               Deshabilitar
@@ -393,12 +424,32 @@ const Users = () => {
                           {membership.user.email}
                         </p>
 
-                        <p className="mt-2 text-sm text-slate-400">
-                          Rol:{" "}
-                          <span className="text-slate-200">
-                            {membership.role.name}
-                          </span>
-                        </p>
+                        <div className="mt-3">
+                          <label className="text-xs text-slate-400">Rol</label>
+
+                          <select
+                            value={membership.role.id}
+                            disabled={
+                              updatingUserId === membership.user.id ||
+                              loadingRoles
+                            }
+                            onChange={(event) =>
+                              handleUserUpdate({
+                                userId: membership.user.id,
+                                name: membership.user.name,
+                                roleId: event.target.value,
+                                status: membership.user.status,
+                              })
+                            }
+                            className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400 disabled:opacity-60"
+                          >
+                            {roles.map((role) => (
+                              <option key={role.id} value={role.id}>
+                                {role.name}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
                       </div>
 
                       <span
@@ -416,14 +467,14 @@ const Users = () => {
                         value={membership.user.status}
                         disabled={updatingUserId === membership.user.id}
                         onChange={(event) =>
-                          handleStatusChange({
+                          handleUserUpdate({
                             userId: membership.user.id,
-                            status: event.target.value,
-                            roleId: membership.role.id,
                             name: membership.user.name,
+                            roleId: membership.role.id,
+                            status: event.target.value,
                           })
                         }
-                        className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400"
+                        className="w-full rounded-lg border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-100 outline-none focus:border-cyan-400 disabled:opacity-60"
                       >
                         <option value="ACTIVE">Activo</option>
                         <option value="INACTIVE">Inactivo</option>

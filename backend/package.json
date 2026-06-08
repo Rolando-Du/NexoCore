@@ -18,7 +18,8 @@
     "db:generate": "pnpm prisma:generate",
     "db:migrate": "pnpm prisma:migrate",
     "db:deploy": "pnpm prisma:migrate:deploy",
-    "db:studio": "pnpm prisma:studio"
+    "db:studio": "pnpm prisma:studio",
+    "db:seed:roles": "node prisma/seed-roles.js"
   },
   "keywords": [
     "nexocore",
