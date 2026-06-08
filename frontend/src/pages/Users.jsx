@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "../services/api";
+import { usePermissions } from "../hooks/usePermissions";
 
 const initialForm = {
   name: "",
@@ -22,6 +23,12 @@ const getStatusLabel = (status) => {
 };
 
 const Users = () => {
+  const { can } = usePermissions();
+
+  const canCreateUsers = can("users:create");
+  const canUpdateUsers = can("users:update");
+  const canDisableUsers = can("users:disable");
+
   const [users, setUsers] = useState([]);
   const [roles, setRoles] = useState([]);
   const [form, setForm] = useState(initialForm);
@@ -91,6 +98,11 @@ const Users = () => {
   const handleSubmit = async (event) => {
     event.preventDefault();
 
+    if (!canCreateUsers) {
+      setError("No tenés permisos para crear usuarios");
+      return;
+    }
+
     if (!form.name || !form.email || !form.password || !form.roleId) {
       setError("Completá nombre, email, contraseña y rol");
       return;
@@ -123,6 +135,11 @@ const Users = () => {
   };
 
   const handleUserUpdate = async ({ userId, name, roleId, status }) => {
+    if (!canUpdateUsers) {
+      setError("No tenés permisos para actualizar usuarios");
+      return;
+    }
+
     try {
       setUpdatingUserId(userId);
       setError("");
@@ -146,6 +163,11 @@ const Users = () => {
   };
 
   const handleDisableUser = async (userId) => {
+    if (!canDisableUsers) {
+      setError("No tenés permisos para deshabilitar usuarios");
+      return;
+    }
+
     try {
       setUpdatingUserId(userId);
       setError("");
@@ -206,87 +228,99 @@ const Users = () => {
         </div>
       )}
 
-      <div className="mt-6 grid gap-6 xl:grid-cols-[420px_1fr]">
-        <form
-          onSubmit={handleSubmit}
-          className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6"
-        >
-          <h3 className="text-lg font-semibold md:text-xl">Nuevo usuario</h3>
+      {!canCreateUsers && (
+        <div className="mt-6 rounded-lg border border-slate-700 bg-slate-900/70 px-4 py-3 text-sm text-slate-400">
+          Tu rol actual no tiene permiso para crear nuevos usuarios.
+        </div>
+      )}
 
-          <p className="mt-1 text-sm text-slate-400">
-            Creá usuarios para operar dentro del tenant actual.
-          </p>
-
-          <div className="mt-6 space-y-4">
-            <div>
-              <label className="text-sm text-slate-300">Nombre *</label>
-              <input
-                name="name"
-                value={form.name}
-                onChange={handleChange}
-                placeholder="Usuario Operativo"
-                className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none placeholder:text-slate-600 focus:border-cyan-400"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm text-slate-300">Email *</label>
-              <input
-                type="email"
-                name="email"
-                value={form.email}
-                onChange={handleChange}
-                placeholder="operativo@nexocore.com"
-                className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none placeholder:text-slate-600 focus:border-cyan-400"
-              />
-            </div>
-
-            <div>
-              <label className="text-sm text-slate-300">Contraseña *</label>
-              <input
-                type="password"
-                name="password"
-                value={form.password}
-                onChange={handleChange}
-                placeholder="Usuario1234"
-                className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none placeholder:text-slate-600 focus:border-cyan-400"
-              />
-
-              <p className="mt-2 text-xs text-slate-500">
-                Mínimo 8 caracteres, una mayúscula, una minúscula y un número.
-              </p>
-            </div>
-
-            <div>
-              <label className="text-sm text-slate-300">Rol *</label>
-              <select
-                name="roleId"
-                value={form.roleId}
-                onChange={handleChange}
-                disabled={loadingRoles || roles.length === 0}
-                className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400 disabled:opacity-60"
-              >
-                {roles.length === 0 ? (
-                  <option value="">Sin roles disponibles</option>
-                ) : (
-                  roles.map((role) => (
-                    <option key={role.id} value={role.id}>
-                      {role.name}
-                    </option>
-                  ))
-                )}
-              </select>
-            </div>
-          </div>
-
-          <button
-            type="submit"
-            disabled={creating || roles.length === 0}
-            className="mt-6 w-full rounded-lg bg-cyan-500 px-4 py-3 font-semibold text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+      <div
+        className={`mt-6 grid gap-6 ${
+          canCreateUsers ? "xl:grid-cols-[420px_1fr]" : "xl:grid-cols-1"
+        }`}
+      >
+        {canCreateUsers && (
+          <form
+            onSubmit={handleSubmit}
+            className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6"
           >
-            {creating ? "Creando..." : "Crear usuario"}
-          </button>
-        </form>
+            <h3 className="text-lg font-semibold md:text-xl">Nuevo usuario</h3>
+
+            <p className="mt-1 text-sm text-slate-400">
+              Creá usuarios para operar dentro del tenant actual.
+            </p>
+
+            <div className="mt-6 space-y-4">
+              <div>
+                <label className="text-sm text-slate-300">Nombre *</label>
+                <input
+                  name="name"
+                  value={form.name}
+                  onChange={handleChange}
+                  placeholder="Usuario Operativo"
+                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none placeholder:text-slate-600 focus:border-cyan-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-slate-300">Email *</label>
+                <input
+                  type="email"
+                  name="email"
+                  value={form.email}
+                  onChange={handleChange}
+                  placeholder="operativo@nexocore.com"
+                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none placeholder:text-slate-600 focus:border-cyan-400"
+                />
+              </div>
+
+              <div>
+                <label className="text-sm text-slate-300">Contraseña *</label>
+                <input
+                  type="password"
+                  name="password"
+                  value={form.password}
+                  onChange={handleChange}
+                  placeholder="Usuario1234"
+                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none placeholder:text-slate-600 focus:border-cyan-400"
+                />
+
+                <p className="mt-2 text-xs text-slate-500">
+                  Mínimo 8 caracteres, una mayúscula, una minúscula y un número.
+                </p>
+              </div>
+
+              <div>
+                <label className="text-sm text-slate-300">Rol *</label>
+                <select
+                  name="roleId"
+                  value={form.roleId}
+                  onChange={handleChange}
+                  disabled={loadingRoles || roles.length === 0}
+                  className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400 disabled:opacity-60"
+                >
+                  {roles.length === 0 ? (
+                    <option value="">Sin roles disponibles</option>
+                  ) : (
+                    roles.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.name}
+                      </option>
+                    ))
+                  )}
+                </select>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={creating || roles.length === 0}
+              className="mt-6 w-full rounded-lg bg-cyan-500 px-4 py-3 font-semibold text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {creating ? "Creando..." : "Crear usuario"}
+            </button>
+          </form>
+        )}
 
         <section className="min-w-0 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -335,6 +369,7 @@ const Users = () => {
                           <select
                             value={membership.role.id}
                             disabled={
+                              !canUpdateUsers ||
                               updatingUserId === membership.user.id ||
                               loadingRoles
                             }
@@ -371,7 +406,10 @@ const Users = () => {
                           <div className="flex flex-wrap gap-2">
                             <select
                               value={membership.user.status}
-                              disabled={updatingUserId === membership.user.id}
+                              disabled={
+                                !canUpdateUsers ||
+                                updatingUserId === membership.user.id
+                              }
                               onChange={(event) =>
                                 handleUserUpdate({
                                   userId: membership.user.id,
@@ -387,19 +425,21 @@ const Users = () => {
                               <option value="BLOCKED">Bloqueado</option>
                             </select>
 
-                            <button
-                              type="button"
-                              disabled={
-                                updatingUserId === membership.user.id ||
-                                membership.user.status === "INACTIVE"
-                              }
-                              onClick={() =>
-                                handleDisableUser(membership.user.id)
-                              }
-                              className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                            >
-                              Deshabilitar
-                            </button>
+                            {canDisableUsers && (
+                              <button
+                                type="button"
+                                disabled={
+                                  updatingUserId === membership.user.id ||
+                                  membership.user.status === "INACTIVE"
+                                }
+                                onClick={() =>
+                                  handleDisableUser(membership.user.id)
+                                }
+                                className="rounded-lg bg-red-500/10 px-3 py-2 text-xs text-red-300 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                Deshabilitar
+                              </button>
+                            )}
                           </div>
                         </td>
                       </tr>
@@ -430,6 +470,7 @@ const Users = () => {
                           <select
                             value={membership.role.id}
                             disabled={
+                              !canUpdateUsers ||
                               updatingUserId === membership.user.id ||
                               loadingRoles
                             }
@@ -465,7 +506,10 @@ const Users = () => {
                     <div className="mt-4 grid gap-2 sm:grid-cols-2">
                       <select
                         value={membership.user.status}
-                        disabled={updatingUserId === membership.user.id}
+                        disabled={
+                          !canUpdateUsers ||
+                          updatingUserId === membership.user.id
+                        }
                         onChange={(event) =>
                           handleUserUpdate({
                             userId: membership.user.id,
@@ -481,17 +525,19 @@ const Users = () => {
                         <option value="BLOCKED">Bloqueado</option>
                       </select>
 
-                      <button
-                        type="button"
-                        disabled={
-                          updatingUserId === membership.user.id ||
-                          membership.user.status === "INACTIVE"
-                        }
-                        onClick={() => handleDisableUser(membership.user.id)}
-                        className="w-full rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
-                      >
-                        Deshabilitar
-                      </button>
+                      {canDisableUsers && (
+                        <button
+                          type="button"
+                          disabled={
+                            updatingUserId === membership.user.id ||
+                            membership.user.status === "INACTIVE"
+                          }
+                          onClick={() => handleDisableUser(membership.user.id)}
+                          className="w-full rounded-lg bg-red-500/10 px-3 py-2 text-sm text-red-300 hover:bg-red-500/20 disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          Deshabilitar
+                        </button>
+                      )}
                     </div>
                   </article>
                 ))}
