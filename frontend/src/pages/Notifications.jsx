@@ -8,6 +8,12 @@ const statusOptions = [
   { value: "ARCHIVED", label: "Archivadas" },
 ];
 
+const typeOptions = [
+  { value: "", label: "Todos" },
+  { value: "OPERATION_ASSIGNED", label: "Operación asignada" },
+  { value: "OPERATION_STATUS_CHANGED", label: "Cambio de estado" },
+];
+
 const typeLabels = {
   OPERATION_ASSIGNED: "Operación asignada",
   OPERATION_STATUS_CHANGED: "Cambio de estado",
@@ -32,18 +38,27 @@ const getStatusLabel = (status) => {
 
 const Notifications = () => {
   const [notifications, setNotifications] = useState([]);
-  const [filterStatus, setFilterStatus] = useState("");
+  const [unreadTotal, setUnreadTotal] = useState(0);
+
+  const [filters, setFilters] = useState({
+    status: "",
+    type: "",
+  });
+
   const [loading, setLoading] = useState(false);
   const [markingId, setMarkingId] = useState(null);
   const [markingAll, setMarkingAll] = useState(false);
+
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  const unreadCount = useMemo(() => {
+  const visibleUnreadCount = useMemo(() => {
     return notifications.filter(
       (notification) => notification.status === "UNREAD"
     ).length;
   }, [notifications]);
+
+  const hasActiveFilters = Boolean(filters.status || filters.type);
 
   const getNotifications = useCallback(async () => {
     try {
@@ -55,13 +70,19 @@ const Notifications = () => {
         skip: 0,
       };
 
-      if (filterStatus) {
-        params.status = filterStatus;
+      if (filters.status) {
+        params.status = filters.status;
+      }
+
+      if (filters.type) {
+        params.type = filters.type;
       }
 
       const response = await api.get("/notifications/my", { params });
+      const data = response.data.data;
 
-      setNotifications(response.data.data.notifications);
+      setNotifications(data.notifications || []);
+      setUnreadTotal(data.unreadTotal ?? 0);
     } catch (error) {
       setError(
         error.response?.data?.message ||
@@ -70,7 +91,27 @@ const Notifications = () => {
     } finally {
       setLoading(false);
     }
-  }, [filterStatus]);
+  }, [filters]);
+
+  const handleFilterChange = (event) => {
+    setFilters({
+      ...filters,
+      [event.target.name]: event.target.value,
+    });
+
+    setError("");
+    setSuccessMessage("");
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      status: "",
+      type: "",
+    });
+
+    setError("");
+    setSuccessMessage("");
+  };
 
   const handleMarkAsRead = async (notificationId) => {
     try {
@@ -140,16 +181,17 @@ const Notifications = () => {
           <button
             type="button"
             onClick={getNotifications}
-            className="w-full rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-cyan-400 sm:w-auto"
+            disabled={loading}
+            className="w-full rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-cyan-400 hover:text-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
-            Actualizar
+            {loading ? "Actualizando..." : "Actualizar"}
           </button>
 
           <button
             type="button"
             onClick={handleMarkAllAsRead}
-            disabled={markingAll || unreadCount === 0}
-            className="w-full rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-cyan-400 disabled:opacity-60 sm:w-auto"
+            disabled={markingAll || unreadTotal === 0}
+            className="w-full rounded-lg bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
           >
             {markingAll ? "Marcando..." : "Marcar todas como leídas"}
           </button>
@@ -172,12 +214,13 @@ const Notifications = () => {
         <aside className="rounded-2xl border border-slate-800 bg-slate-900/70 p-4 md:p-6">
           <h3 className="text-lg font-semibold md:text-xl">Filtros</h3>
 
-          <div className="mt-6 grid gap-4 sm:grid-cols-3 lg:grid-cols-1">
-            <div className="sm:col-span-1 lg:col-span-1">
+          <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-1">
+            <div>
               <label className="text-sm text-slate-300">Estado</label>
               <select
-                value={filterStatus}
-                onChange={(event) => setFilterStatus(event.target.value)}
+                name="status"
+                value={filters.status}
+                onChange={handleFilterChange}
                 className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
               >
                 {statusOptions.map((status) => (
@@ -188,10 +231,43 @@ const Notifications = () => {
               </select>
             </div>
 
+            <div>
+              <label className="text-sm text-slate-300">Tipo</label>
+              <select
+                name="type"
+                value={filters.type}
+                onChange={handleFilterChange}
+                className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 outline-none focus:border-cyan-400"
+              >
+                {typeOptions.map((type) => (
+                  <option key={type.label} value={type.value}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="rounded-lg border border-slate-700 px-4 py-3 text-sm text-slate-200 hover:border-cyan-400 hover:text-cyan-400"
+              >
+                Limpiar filtros
+              </button>
+            )}
+
             <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
-              <p className="text-sm text-slate-400">No leídas</p>
+              <p className="text-sm text-slate-400">No leídas totales</p>
               <p className="mt-2 text-3xl font-bold text-cyan-300">
-                {unreadCount}
+                {unreadTotal}
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-800 bg-slate-950/60 p-4">
+              <p className="text-sm text-slate-400">No leídas visibles</p>
+              <p className="mt-2 text-3xl font-bold text-cyan-300">
+                {visibleUnreadCount}
               </p>
             </div>
 
@@ -295,7 +371,7 @@ const Notifications = () => {
                           type="button"
                           onClick={() => handleMarkAsRead(notification.id)}
                           disabled={markingId === notification.id}
-                          className="w-full rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-slate-100 hover:bg-cyan-500 hover:text-slate-950 disabled:opacity-60"
+                          className="w-full rounded-lg bg-slate-800 px-4 py-2 text-sm font-medium text-slate-100 hover:bg-cyan-500 hover:text-slate-950 disabled:cursor-not-allowed disabled:opacity-60"
                         >
                           {markingId === notification.id
                             ? "Marcando..."
@@ -303,7 +379,7 @@ const Notifications = () => {
                         </button>
                       ) : (
                         <div className="w-full rounded-lg border border-emerald-500/20 bg-emerald-500/10 px-4 py-2 text-center text-sm text-emerald-300">
-                          Leída
+                          {getStatusLabel(notification.status)}
                         </div>
                       )}
                     </div>
